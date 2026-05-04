@@ -28,8 +28,10 @@ const loadState = () => {
       supermercado: 0,
       alcancia: 0,
       ruleta: 0,
-      inversion: 0
-    }
+      inversion: 0,
+      quiz: 0
+    },
+    ultimoReset: null
   }
 }
 
@@ -151,7 +153,7 @@ export const usePlayerStore = defineStore('player', {
       
       // Limpiar anti-exploit diario
       this.juegosJugadosHoy = {
-        presupuesto: 0, supermercado: 0, alcancia: 0, ruleta: 0, inversion: 0
+        presupuesto: 0, supermercado: 0, alcancia: 0, ruleta: 0, inversion: 0, quiz: 0
       };
 
       this.save();
@@ -194,18 +196,25 @@ export const usePlayerStore = defineStore('player', {
       return false;
     },
     resetJuego() {
+      const ahora = new Date().getTime();
+      const UN_MES_MS = 30 * 24 * 60 * 60 * 1000;
+      
+      if (this.ultimoReset && (ahora - this.ultimoReset < UN_MES_MS)) {
+        const diasRestantes = Math.ceil((UN_MES_MS - (ahora - this.ultimoReset)) / (24 * 60 * 60 * 1000));
+        return { success: false, msg: `Solo puedes reiniciar una vez al mes. Faltan ${diasRestantes} días.` };
+      }
+
       localStorage.removeItem('playerState');
-      const initialState = loadState();
-      // Si loadState encontró localStorage vacío, retornó el objeto base.
-      // Si no, podríamos tener que forzar el objeto base explícitamente.
       const base = {
         nombre: "Alex", dineroDisponible: 50, dineroAhorrado: 0, dineroInvertido: 0,
         deuda: 0, energiaActual: 5, energiaMaxima: 5, diaActual: 1, historial: [],
         rachas: { diasSinDeuda: 0, diasConAhorro: 0 },
-        juegosJugadosHoy: { presupuesto: 0, supermercado: 0, alcancia: 0, ruleta: 0, inversion: 0 }
+        juegosJugadosHoy: { presupuesto: 0, supermercado: 0, alcancia: 0, ruleta: 0, inversion: 0, quiz: 0 },
+        ultimoReset: ahora
       };
       Object.assign(this.$state, base);
       this.save();
+      return { success: true, msg: "Juego reiniciado correctamente." };
     }
   }
 })

@@ -11,6 +11,8 @@
     <nav class="nav-links">
       <button :class="['nav-btn', { active: currentView === 'games' }]" @click="$emit('change-view', 'games')">Juegos</button>
       <button :class="['nav-btn', { active: currentView === 'wallet' }]" @click="$emit('change-view', 'wallet')">Billetera</button>
+      <button :class="['nav-btn', { active: currentView === 'profile' }]" @click="$emit('change-view', 'profile')">Perfil</button>
+      <button :class="['nav-btn', { active: currentView === 'shop' }]" @click="$emit('change-view', 'shop')">Tienda 🛒</button>
     </nav>
 
     <div class="status-widgets">

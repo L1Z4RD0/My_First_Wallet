@@ -5,7 +5,9 @@
     <main class="main-content">
       <transition name="fade" mode="out-in">
         <WalletView v-if="currentView === 'wallet'" />
-        <div v-else-if="!currentGame" class="games-grid">
+        <ProfileView v-else-if="currentView === 'profile'" />
+        <ShopView v-else-if="currentView === 'shop'" />
+        <div v-else-if="currentView === 'games' && !currentGame" class="games-grid">
           <GameCard 
             v-for="game in games" 
             :key="game.id" 
@@ -13,7 +15,7 @@
             @play="openGame"
           />
         </div>
-        <div v-else class="game-view">
+        <div v-else-if="currentGame" class="game-view">
           <div class="game-view-header">
             <button class="back-btn" @click="closeGame">
               <span class="icon">🔙</span> Volver a los juegos
@@ -48,6 +50,10 @@ import { usePlayerStore } from './store/player'
 import AppHeader from './components/AppHeader.vue'
 import GameCard from './components/GameCard.vue'
 import WalletView from './components/WalletView.vue'
+import ProfileView from './components/avatar/ProfileView.vue'
+import ShopView from './components/avatar/ShopView.vue'
+import { useAvatarStore } from './store/avatar'
+import { onMounted } from 'vue'
 
 // Import placeholders for the 5 games (they will be created next)
 import BudgetGame from './components/games/BudgetGame.vue'
@@ -55,8 +61,14 @@ import SupermarketGame from './components/games/SupermarketGame.vue'
 import SavingsGame from './components/games/SavingsGame.vue'
 import RouletteGame from './components/games/RouletteGame.vue'
 import InvestmentGame from './components/games/InvestmentGame.vue'
+import QuizGame from './components/games/QuizGame.vue'
 
 const playerStore = usePlayerStore()
+const avatarStore = useAvatarStore()
+
+onMounted(() => {
+  avatarStore.init()
+})
 
 const games = ref([
   {
@@ -98,6 +110,14 @@ const games = ref([
     description: 'Invierte en tu negocio. El clima decidirá tu suerte.',
     bgColor: '#06D6A0',
     icon: '🍋'
+  },
+  {
+    id: 'quiz-game',
+    title: 'Desafío Mental',
+    level: 1,
+    description: 'Responde preguntas de finanzas. ¡Gana monedas o piérdelas!',
+    bgColor: '#a29bfe',
+    icon: '💡'
   }
 ])
 
@@ -113,7 +133,8 @@ const componentMap = {
   'supermarket-game': SupermarketGame,
   'savings-game': SavingsGame,
   'roulette-game': RouletteGame,
-  'investment-game': InvestmentGame
+  'investment-game': InvestmentGame,
+  'quiz-game': QuizGame
 }
 
 const currentGameComponent = computed(() => {
