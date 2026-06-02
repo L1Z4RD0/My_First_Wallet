@@ -80,6 +80,7 @@
 <script setup>
 import { ref } from 'vue'
 import { usePlayerStore } from '../store/player'
+import { showNotification } from '../composables/useNotification'
 
 const playerStore = usePlayerStore()
 
@@ -88,28 +89,28 @@ const debtAmount = ref(0)
 
 const depositar = () => {
   if (playerStore.depositarAhorro(bankAmount.value)) {
-    alert(`Depositaste $${bankAmount.value} en el banco.`)
+    showNotification('success', `Depositaste $${bankAmount.value} en el banco.`)
     bankAmount.value = 0
   } else {
-    alert('No tienes suficiente dinero o estás en deuda.')
+    showNotification('error', 'No tienes suficiente dinero o estás en deuda.')
   }
 }
 
 const retirar = () => {
   if (playerStore.retirarAhorro(bankAmount.value)) {
-    alert(`Retiraste $${bankAmount.value} del banco.`)
+    showNotification('success', `Retiraste $${bankAmount.value} del banco.`)
     bankAmount.value = 0
   } else {
-    alert('No tienes suficientes ahorros.')
+    showNotification('warning', 'No tienes suficientes ahorros.')
   }
 }
 
 const pagarDeuda = () => {
   if (playerStore.pagarDeuda(debtAmount.value)) {
-    alert(`Pagaste $${debtAmount.value} de tu deuda.`)
+    showNotification('success', `Pagaste $${debtAmount.value} de tu deuda.`)
     debtAmount.value = 0
   } else {
-    alert('No tienes suficiente dinero para ese pago.')
+    showNotification('error', 'No tienes suficiente dinero para ese pago.')
   }
 }
 </script>

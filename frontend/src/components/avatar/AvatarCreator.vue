@@ -110,6 +110,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { useAvatarStore } from '../../store/avatar'
+import { showNotification } from '../../composables/useNotification'
 import AvatarPreview from './AvatarPreview.vue'
 
 const store = useAvatarStore()
@@ -136,7 +137,7 @@ watch(username, (newVal) => {
 
 const handleSave = () => {
   store.saveProfile()
-  alert('¡Perfil guardado correctamente!')
+  showNotification('success', '¡Perfil guardado correctamente!')
 }
 </script>
 

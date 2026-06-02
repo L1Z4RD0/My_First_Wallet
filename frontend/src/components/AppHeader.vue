@@ -26,6 +26,11 @@
         <span class="value">{{ achievementsCount }}</span>
       </div>
 
+      <div class="energy-widget" title="Energía diaria">
+        <span class="icon">⚡</span>
+        <span class="value">{{ playerStore.energiaActual }} / {{ playerStore.energiaMaxima }}</span>
+      </div>
+
       <div class="wallet-widget" @click="$emit('change-view', 'wallet')" style="cursor: pointer;" title="Dinero Disponible">
         <span class="wallet-icon">💰</span>
         <div class="wallet-info">
@@ -39,6 +44,7 @@
 
 <script setup>
 import { usePlayerStore } from '../store/player'
+import { showConfirm } from '../composables/useModal'
 
 defineProps({
   currentView: {
@@ -57,16 +63,18 @@ defineProps({
 
 defineEmits(['change-view'])
 
+import { showNotification } from '../composables/useNotification'
+
 const playerStore = usePlayerStore()
 
-const terminarDia = () => {
-  if (confirm('¿Estás seguro de terminar el día? Se cobrarán tus gastos diarios (20 monedas).')) {
-    playerStore.terminarDia()
-    if (playerStore.enDeuda) {
-      alert(`¡Cuidado! Tus gastos fueron mayores que tu dinero y has entrado en deuda por ${playerStore.deuda} monedas. Mañana tendrás menos energía.`)
-    } else {
-      alert(`¡Día terminado con éxito! Bienvenido al día ${playerStore.diaActual}.`)
-    }
+const terminarDia = async () => {
+  const ok = await showConfirm('¿Estás seguro de terminar el día? Se cobrarán tus gastos diarios (20 monedas).', 'Terminar día')
+  if (!ok) return
+  playerStore.terminarDia()
+  if (playerStore.enDeuda) {
+    showNotification('error', `¡Cuidado! Tus gastos fueron mayores que tu dinero y has entrado en deuda por ${playerStore.deuda} monedas. Mañana tendrás menos energía.`)
+  } else {
+    showNotification('success', `¡Día terminado con éxito! Bienvenido al día ${playerStore.diaActual}.`)
   }
 }
 </script>
@@ -177,6 +185,8 @@ const terminarDia = () => {
   color: #2d3436;
   border: 1px solid #e3e8ef;
 }
+
+.energy-widget { background: linear-gradient(135deg,#ffd32a,#ffb01f); color: #2d2930; }
 
 .wallet-widget {
   display: flex;

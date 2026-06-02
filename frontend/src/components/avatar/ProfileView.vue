@@ -35,6 +35,18 @@
     <transition name="fade" mode="out-in">
       <div v-if="activeTab === 'avatar'" key="avatar">
         <AvatarCreator />
+        <div class="profile-pinned" v-if="playerStore.achievements.some(a => a.pinned)">
+          <h3>Insignias Ancladas (Perfil)</h3>
+          <div class="pinned-list">
+            <div class="achievement-badge" v-for="achievement in playerStore.achievements.filter(a => a.pinned)" :key="achievement.id">
+              <span class="badge-icon">{{ achievement.badge }}</span>
+              <div>
+                <strong>{{ achievement.title }}</strong>
+                <p>{{ achievement.description }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       <div v-else-if="activeTab === 'inventory'" key="inventory" class="inventory-section">
         <div class="inventory-container">
@@ -70,18 +82,7 @@
         </div>
       </div>
       <div v-else-if="activeTab === 'achievements'" key="achievements" class="achievements-section">
-        <div class="pinned-achievements" v-if="playerStore.achievements.some(a => a.pinned)">
-          <h3>Insignias Ancladas</h3>
-          <div class="pinned-list">
-            <div class="achievement-badge" v-for="achievement in playerStore.achievements.filter(a => a.pinned)" :key="achievement.id">
-              <span class="badge-icon">{{ achievement.badge }}</span>
-              <div>
-                <strong>{{ achievement.title }}</strong>
-                <p>{{ achievement.description }}</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        <!-- Pinned badges are shown in the Avatar tab (profile) -->
 
         <div class="achievement-list">
           <h3>Mis Logros</h3>
@@ -128,29 +129,31 @@
 import { ref, onMounted } from 'vue'
 import { useAvatarStore } from '../../store/avatar'
 import { usePlayerStore } from '../../store/player'
+import { showConfirm } from '../../composables/useModal'
 import AvatarCreator from './AvatarCreator.vue'
 import AvatarPreview from './AvatarPreview.vue'
+import { showNotification } from '../../composables/useNotification'
 
 const store = useAvatarStore()
 const playerStore = usePlayerStore()
 const activeTab = ref('avatar')
 const slots = ['Cabeza', 'Torso', 'Piernas', 'Pies']
 
-const confirmReset = () => {
-  if (confirm('¿ESTÁS SEGURO? Esta acción no se puede deshacer y perderás todo tu dinero y progreso.')) {
-    const result = playerStore.resetJuego()
-    if (!result.success) {
-      alert(result.msg)
-    } else {
-      alert(result.msg)
-      location.reload() // Reload to clean everything
-    }
+const confirmReset = async () => {
+  const ok = await showConfirm('¿ESTÁS SEGURO? Esta acción no se puede deshacer y perderás todo tu dinero y progreso.', 'Reiniciar juego')
+  if (!ok) return
+  const result = playerStore.resetJuego()
+  if (!result.success) {
+    showNotification('warning', result.msg)
+  } else {
+    showNotification('success', result.msg)
+    location.reload() // Reload to clean everything
   }
 }
 
 const togglePin = (id) => {
   if (!playerStore.togglePinAchievement(id)) {
-    alert('Primero debes desbloquear el logro para poder anclarlo.')
+    showNotification('info', 'Primero debes desbloquear el logro para poder anclarlo.')
   }
 }
 

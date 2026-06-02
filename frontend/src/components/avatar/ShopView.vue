@@ -47,6 +47,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useAvatarStore } from '../../store/avatar'
+import { showNotification } from '../../composables/useNotification'
 
 const store = useAvatarStore()
 const activeCategory = ref('clothing')
@@ -145,9 +146,9 @@ const handleBuy = (item) => {
   
   const result = store.buyItem(item)
   if (!result.success) {
-    alert(result.msg)
+    showNotification('error', result.msg)
   } else {
-    alert(`¡Has comprado ${item.name}! Pruébatelo en tu Perfil.`)
+    showNotification('success', `¡Has comprado ${item.name}! Pruébatelo en tu Perfil.`)
   }
 }
 </script>

@@ -76,6 +76,8 @@
         <button class="btn-primary" @click="closeRewardModal">¡Entendido!</button>
       </div>
     </div>
+    <Notification />
+    <ConfirmModal />
   </div>
 </template>
 
@@ -88,6 +90,9 @@ import WalletView from './components/WalletView.vue'
 import ProfileView from './components/avatar/ProfileView.vue'
 import ShopView from './components/avatar/ShopView.vue'
 import { useAvatarStore } from './store/avatar'
+import Notification from './components/Notification.vue'
+import ConfirmModal from './components/ConfirmModal.vue'
+import { showNotification } from './composables/useNotification'
 
 import BudgetGame from './components/games/BudgetGame.vue'
 import SupermarketGame from './components/games/SupermarketGame.vue'
@@ -227,11 +232,11 @@ const closeSubject = () => {
 
 const openGame = (game) => {
   if (playerStore.enDeuda && game.id === 'investment-game') {
-    alert("¡Estás en deuda! No puedes invertir hasta que pagues lo que debes.");
+    showNotification('error', "¡Estás en deuda! No puedes invertir hasta que pagues lo que debes.")
     return;
   }
   if (playerStore.energiaAgotada) {
-    alert("Te has quedado sin energía por hoy. ¡Termina el día para recuperarla!");
+    showNotification('warning', "Te has quedado sin energía por hoy. ¡Termina el día para recuperarla!")
     return;
   }
   currentGame.value = game
