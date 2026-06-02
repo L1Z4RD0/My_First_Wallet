@@ -1,20 +1,55 @@
 <template>
   <div class="app-container">
-    <AppHeader :currentView="currentView" @change-view="changeView" />
+    <AppHeader
+      :currentView="currentView"
+      :currentStreak="playerStore.consecutiveDays"
+      :achievementsCount="playerStore.achievements.filter(a => a.unlocked).length"
+      @change-view="changeView"
+    />
     
     <main class="main-content">
       <transition name="fade" mode="out-in">
         <WalletView v-if="currentView === 'wallet'" />
         <ProfileView v-else-if="currentView === 'profile'" />
         <ShopView v-else-if="currentView === 'shop'" />
-        <div v-else-if="currentView === 'games' && !currentGame" class="games-grid">
-          <GameCard 
-            v-for="game in games" 
-            :key="game.id" 
-            :game="game" 
-            @play="openGame"
-          />
+
+        <div v-else-if="currentView === 'games' && !currentSubject && !currentGame" class="subjects-grid">
+          <div
+            v-for="subject in subjects"
+            :key="subject.id"
+            class="subject-card"
+            @click="openSubject(subject)"
+          >
+            <div class="subject-icon">{{ subject.icon }}</div>
+            <div>
+              <h3>{{ subject.title }}</h3>
+              <p>{{ subject.description }}</p>
+            </div>
+            <button class="btn-primary">Abrir materia</button>
+          </div>
         </div>
+
+        <div v-else-if="currentView === 'games' && currentSubject && !currentGame" class="subject-games-view">
+          <div class="subject-header">
+            <button class="back-btn subject-back" @click="closeSubject">
+              <span class="icon">🔙</span> Volver a materias
+            </button>
+            <div>
+              <h2>{{ currentSubject.title }}</h2>
+              <p>{{ currentSubject.description }}</p>
+            </div>
+          </div>
+
+          <div class="games-grid">
+            <GameCard
+              v-for="game in subjectGames"
+              :key="game.id"
+              :game="game"
+              @play="openGame"
+            />
+          </div>
+        </div>
+
         <div v-else-if="currentGame" class="game-view">
           <div class="game-view-header">
             <button class="back-btn" @click="closeGame">
@@ -45,7 +80,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { usePlayerStore } from './store/player'
 import AppHeader from './components/AppHeader.vue'
 import GameCard from './components/GameCard.vue'
@@ -53,9 +88,7 @@ import WalletView from './components/WalletView.vue'
 import ProfileView from './components/avatar/ProfileView.vue'
 import ShopView from './components/avatar/ShopView.vue'
 import { useAvatarStore } from './store/avatar'
-import { onMounted } from 'vue'
 
-// Import placeholders for the 5 games (they will be created next)
 import BudgetGame from './components/games/BudgetGame.vue'
 import SupermarketGame from './components/games/SupermarketGame.vue'
 import SavingsGame from './components/games/SavingsGame.vue'
@@ -68,59 +101,91 @@ const avatarStore = useAvatarStore()
 
 onMounted(() => {
   avatarStore.init()
+  playerStore.checkLoginStreak()
+  playerStore.evaluateAchievements()
 })
+
+const subjects = ref([
+  {
+    id: 'math',
+    title: 'Matemáticas',
+    description: 'Todos los juegos de lógica y números para aprender finanzas.',
+    icon: '➗',
+    language: 'es'
+  },
+  {
+    id: 'english',
+    title: 'English',
+    description: 'Play the same games in English to learn financial vocabulary.',
+    icon: '📝',
+    language: 'en'
+  }
+])
 
 const games = ref([
   {
     id: 'budget-game',
     title: 'El Repartidor',
+    englishTitle: 'The Budget Boss',
     level: 1,
     description: 'Reparte tu sueldo sabiamente. ¡Cuidado con los imprevistos!',
+    englishDescription: 'Divide your budget wisely. Watch out for surprises!',
     bgColor: '#FF6B6B',
     icon: '📊'
   },
   {
     id: 'supermarket-game',
     title: 'El Supermercado',
+    englishTitle: 'Supermarket Sprint',
     level: 1,
     description: 'Compra inteligente y ahorra dinero eligiendo la mejor opción.',
+    englishDescription: 'Shop smart and save money by choosing the best options.',
     bgColor: '#4ECDC4',
     icon: '🛒'
   },
   {
     id: 'savings-game',
     title: 'La Alcancía Mágica',
+    englishTitle: 'Magic Piggy Bank',
     level: 2,
     description: '¿Gastar ahora o guardar para el futuro? Tú decides.',
+    englishDescription: 'Spend now or save for later? The choice is yours.',
     bgColor: '#FFD166',
     icon: '🐷'
   },
   {
     id: 'roulette-game',
     title: 'La Ruleta de la Vida',
+    englishTitle: 'Life Roulette',
     level: 2,
     description: 'Eventos inesperados. ¡Es mejor tener un seguro!',
+    englishDescription: 'Unexpected events happen. Insurance helps protect you!',
     bgColor: '#118AB2',
     icon: '🎡'
   },
   {
     id: 'investment-game',
     title: 'El Puesto de Limonada',
+    englishTitle: 'Lemonade Stand',
     level: 3,
     description: 'Invierte en tu negocio. El clima decidirá tu suerte.',
+    englishDescription: 'Invest in your stand. The weather will decide your luck.',
     bgColor: '#06D6A0',
     icon: '🍋'
   },
   {
     id: 'quiz-game',
     title: 'Desafío Mental',
+    englishTitle: 'Mind Challenge',
     level: 1,
     description: 'Responde preguntas de finanzas. ¡Gana monedas o piérdelas!',
+    englishDescription: 'Answer finance questions. Win coins or lose them!',
     bgColor: '#a29bfe',
     icon: '💡'
   }
 ])
 
+const currentSubject = ref(null)
 const currentGame = ref(null)
 const showRewardModal = ref(false)
 const lastReward = ref(0)
@@ -141,6 +206,25 @@ const currentGameComponent = computed(() => {
   return currentGame.value ? componentMap[currentGame.value.id] : null
 })
 
+const subjectGames = computed(() => {
+  if (!currentSubject.value) return []
+  return games.value.map((game) => ({
+    ...game,
+    title: currentSubject.value.language === 'en' ? game.englishTitle : game.title,
+    description: currentSubject.value.language === 'en' ? game.englishDescription : game.description
+  }))
+})
+
+const openSubject = (subject) => {
+  currentSubject.value = subject
+  currentGame.value = null
+}
+
+const closeSubject = () => {
+  currentSubject.value = null
+  currentGame.value = null
+}
+
 const openGame = (game) => {
   if (playerStore.enDeuda && game.id === 'investment-game') {
     alert("¡Estás en deuda! No puedes invertir hasta que pagues lo que debes.");
@@ -159,7 +243,8 @@ const closeGame = () => {
 
 const changeView = (view) => {
   currentView.value = view
-  if (view === 'games') currentGame.value = null
+  currentSubject.value = null
+  currentGame.value = null
 }
 
 const closeRewardModal = () => {
@@ -177,6 +262,12 @@ const onGameCompleted = (result) => {
       modalTitle.value = result.title || 'Sigue intentándolo'
       modalMessage.value = result.msg || 'Esta vez no hubo ganancias.'
     }
+
+    const newAchievements = playerStore.evaluateAchievements()
+    if (newAchievements.length > 0) {
+      modalMessage.value += ' ¡Desbloqueaste un logro!'
+    }
+
     showRewardModal.value = true
     closeGame()
   }
@@ -195,10 +286,77 @@ const onGameCompleted = (result) => {
   flex: 1;
 }
 
-.games-grid {
+.subjects-grid, .games-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.6rem;
+}
+
+.subject-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(242,246,255,0.96));
+  border: 1px solid rgba(59,130,246,0.12);
+  backdrop-filter: blur(12px);
+  border-radius: var(--border-radius-lg);
+  padding: 2rem;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.subject-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 32px rgba(34, 34, 34, 0.12);
+}
+
+.subject-card .subject-icon {
+  font-size: 3rem;
+}
+
+.subject-card h3 {
+  margin: 1rem 0 0.75rem;
+  font-size: 1.7rem;
+}
+
+.subject-card p {
+  color: #5f6c7b;
+  line-height: 1.6;
+}
+
+.subject-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.subject-header h2 {
+  margin: 0;
+  font-size: 2rem;
+  color: var(--primary-color);
+}
+
+.subject-header p {
+  margin: 0.5rem 0 0;
+  color: #5f6c7b;
+}
+
+.subject-back {
+  background: white;
+  border: 2px solid #dfe6e9;
+  color: var(--text-dark);
+  padding: 0.85rem 1.2rem;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.subject-back:hover {
+  background: #f1f2f6;
 }
 
 .game-view {
@@ -258,29 +416,26 @@ const onGameCompleted = (result) => {
 
 .modal-content {
   background: white;
-  padding: 3rem;
   border-radius: var(--border-radius-lg);
+  padding: 2rem;
+  width: min(95%, 420px);
+  box-shadow: var(--shadow-md);
   text-align: center;
-  box-shadow: var(--shadow-hover);
-  animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .reward-modal h2 {
-  color: var(--primary-color);
-  font-size: 2rem;
   margin-bottom: 1rem;
+  color: var(--primary-color);
 }
 
 .coins-animation {
-  font-size: 5rem;
+  font-size: 3rem;
   margin: 1rem 0;
-  animation: bounce 2s infinite;
 }
 
 .reward-amount {
-  font-size: 3rem;
-  color: var(--accent-color);
-  text-shadow: 2px 2px 0px rgba(0,0,0,0.1);
-  margin-bottom: 2rem;
+  font-size: 2rem;
+  margin: 1rem 0;
+  color: #2d3436;
 }
 </style>

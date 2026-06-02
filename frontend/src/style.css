@@ -1,18 +1,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@400;600;800&display=swap');
 
 :root {
-  --primary-color: #FF6B6B;
-  --secondary-color: #4ECDC4;
-  --accent-color: #FFE66D;
-  --background-color: #F7FFF7;
-  --text-dark: #2F3542;
+  --primary-color: #5B5FFB;
+  --secondary-color: #36D7B7;
+  --accent-color: #F9C74F;
+  --background-color: #EFF4FF;
+  --text-dark: #232A40;
   --text-light: #FFFFFF;
   --card-bg: #FFFFFF;
   --border-radius-lg: 24px;
   --border-radius-md: 16px;
-  --shadow-sm: 0 4px 6px rgba(0,0,0,0.05);
-  --shadow-md: 0 10px 20px rgba(0,0,0,0.1);
-  --shadow-hover: 0 15px 30px rgba(0,0,0,0.15);
+  --shadow-sm: 0 8px 16px rgba(35, 42, 64, 0.08);
+  --shadow-md: 0 16px 30px rgba(35, 42, 64, 0.12);
+  --shadow-hover: 0 18px 36px rgba(35, 42, 64, 0.14);
   --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 

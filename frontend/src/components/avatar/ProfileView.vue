@@ -2,7 +2,7 @@
   <div class="profile-view">
     <div class="header-section">
       <h2>Mi Perfil</h2>
-      <p>Personaliza tu identidad en EduFinanzas</p>
+      <p>Personaliza tu identidad en My First Wallet</p>
     </div>
 
     <div class="content-tabs">
@@ -17,6 +17,12 @@
         @click="activeTab = 'inventory'"
       >
         Inventario
+      </button>
+      <button 
+        :class="{ active: activeTab === 'achievements' }"
+        @click="activeTab = 'achievements'"
+      >
+        Logros 🏆
       </button>
       <button 
         :class="{ active: activeTab === 'settings' }"
@@ -63,6 +69,43 @@
           </div>
         </div>
       </div>
+      <div v-else-if="activeTab === 'achievements'" key="achievements" class="achievements-section">
+        <div class="pinned-achievements" v-if="playerStore.achievements.some(a => a.pinned)">
+          <h3>Insignias Ancladas</h3>
+          <div class="pinned-list">
+            <div class="achievement-badge" v-for="achievement in playerStore.achievements.filter(a => a.pinned)" :key="achievement.id">
+              <span class="badge-icon">{{ achievement.badge }}</span>
+              <div>
+                <strong>{{ achievement.title }}</strong>
+                <p>{{ achievement.description }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="achievement-list">
+          <h3>Mis Logros</h3>
+          <div class="achievement-card" v-for="achievement in playerStore.achievements" :key="achievement.id" :class="{ unlocked: achievement.unlocked }">
+            <div class="achievement-left">
+              <span class="badge-icon">{{ achievement.badge }}</span>
+              <div>
+                <strong>{{ achievement.title }}</strong>
+                <p>{{ achievement.description }}</p>
+              </div>
+            </div>
+            <div class="achievement-actions">
+              <span class="difficulty-pill">{{ achievement.difficulty }}</span>
+              <button
+                class="btn-secondary"
+                :disabled="!achievement.unlocked"
+                @click="togglePin(achievement.id)"
+              >
+                {{ achievement.pinned ? 'Desanclar' : 'Anclar' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
       <div v-else-if="activeTab === 'settings'" key="settings" class="settings-section">
         <div class="settings-card">
           <h3>Opciones Avanzadas</h3>
@@ -102,6 +145,12 @@ const confirmReset = () => {
       alert(result.msg)
       location.reload() // Reload to clean everything
     }
+  }
+}
+
+const togglePin = (id) => {
+  if (!playerStore.togglePinAchievement(id)) {
+    alert('Primero debes desbloquear el logro para poder anclarlo.')
   }
 }
 
@@ -227,6 +276,111 @@ onMounted(() => {
   padding: 3rem;
   color: #999;
   font-style: italic;
+}
+
+.achievements-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.pinned-achievements {
+  background: #ffffff;
+  padding: 1.5rem;
+  border-radius: 24px;
+  box-shadow: var(--shadow-md);
+}
+
+.pinned-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.achievement-badge {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border: 2px dashed var(--accent-color);
+  padding: 1rem;
+  border-radius: 20px;
+  flex: 1 1 220px;
+  min-width: 220px;
+}
+
+.achievement-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.achievement-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-radius: 20px;
+  border: 2px solid #f0f0f0;
+  background: white;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.achievement-card.unlocked {
+  border-color: var(--primary-color);
+  box-shadow: 0 12px 24px rgba(91, 95, 251, 0.12);
+}
+
+.achievement-card:hover {
+  transform: translateY(-3px);
+}
+
+.achievement-left {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex: 1;
+}
+
+.badge-icon {
+  font-size: 2rem;
+}
+
+.achievement-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.difficulty-pill {
+  background: #f1f2f6;
+  color: #333;
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, var(--secondary-color), #1dd1a1);
+  color: white;
+  border: none;
+  padding: 0.7rem 1rem;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: transform 0.2s;
+}
+
+.btn-secondary:disabled {
+  background: #dcdde1;
+  cursor: not-allowed;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  transform: translateY(-2px);
 }
 
 .settings-section {

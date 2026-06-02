@@ -1,7 +1,7 @@
 <template>
   <header class="app-header">
     <div class="logo">
-      <h1>🎮 EduFinanzas</h1>
+      <h1>💼 My First Wallet</h1>
       <div class="game-time">
         <span class="day-badge">Día {{ playerStore.diaActual }}</span>
         <button class="end-day-btn" @click="terminarDia">Terminar Día 🌙</button>
@@ -16,14 +16,14 @@
     </nav>
 
     <div class="status-widgets">
-      <div class="energy-widget" title="Energía Diaria">
-        <span class="icon">⚡</span>
-        <span class="value">{{ playerStore.energiaActual }}/{{ playerStore.energiaMaxima }}</span>
+      <div class="streak-widget" title="Racha de conexión">
+        <span class="icon">🔥</span>
+        <span class="value">{{ currentStreak }} días</span>
       </div>
 
-      <div v-if="playerStore.enDeuda" class="debt-widget" title="¡Tienes deudas pendientes!">
-        <span class="icon">🔴</span>
-        <span class="value">-${{ playerStore.deuda }}</span>
+      <div class="badge-widget" title="Logros desbloqueados">
+        <span class="icon">🏅</span>
+        <span class="value">{{ achievementsCount }}</span>
       </div>
 
       <div class="wallet-widget" @click="$emit('change-view', 'wallet')" style="cursor: pointer;" title="Dinero Disponible">
@@ -44,6 +44,14 @@ defineProps({
   currentView: {
     type: String,
     default: 'games'
+  },
+  currentStreak: {
+    type: Number,
+    default: 0
+  },
+  achievementsCount: {
+    type: Number,
+    default: 0
   }
 })
 
@@ -83,7 +91,7 @@ const terminarDia = () => {
 }
 
 .logo h1 {
-  font-size: 1.8rem;
+  font-size: 1.9rem;
   color: var(--primary-color);
   margin: 0;
 }
@@ -98,8 +106,8 @@ const terminarDia = () => {
   background: #dfe6e9;
   color: #2d3436;
   font-weight: 800;
-  padding: 0.2rem 0.6rem;
-  border-radius: 12px;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
   font-size: 0.9rem;
 }
 
@@ -107,7 +115,7 @@ const terminarDia = () => {
   background: #6c5ce7;
   color: white;
   border: none;
-  padding: 0.3rem 0.8rem;
+  padding: 0.35rem 0.9rem;
   border-radius: 12px;
   font-size: 0.8rem;
   font-weight: bold;
@@ -128,10 +136,10 @@ const terminarDia = () => {
 .nav-btn {
   background: white;
   border: 2px solid #dfe6e9;
-  padding: 0.5rem 1.5rem;
+  padding: 0.5rem 1.4rem;
   border-radius: 20px;
   font-family: 'Nunito', sans-serif;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--text-dark);
   cursor: pointer;
@@ -147,33 +155,27 @@ const terminarDia = () => {
   background: var(--primary-color);
   color: white;
   border-color: #5b4db8;
-  transform: scale(1.05);
+  transform: scale(1.03);
 }
 
 .status-widgets {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
-.energy-widget, .debt-widget {
+.streak-widget, .badge-widget, .energy-widget, .debt-widget {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
+  gap: 0.35rem;
+  padding: 0.6rem 1rem;
+  border-radius: 999px;
   font-weight: 800;
-  font-size: 1.2rem;
-}
-
-.energy-widget {
-  background: #fff3cd;
-  color: #856404;
-}
-
-.debt-widget {
-  background: #f8d7da;
-  color: #721c24;
+  font-size: 1rem;
+  background: #f7f9fc;
+  color: #2d3436;
+  border: 1px solid #e3e8ef;
 }
 
 .wallet-widget {
@@ -181,7 +183,7 @@ const terminarDia = () => {
   align-items: center;
   gap: 1rem;
   background: linear-gradient(135deg, var(--accent-color), #ffd32a);
-  padding: 0.75rem 1.5rem;
+  padding: 0.75rem 1.3rem;
   border-radius: 50px;
   box-shadow: 0 4px 10px rgba(255, 230, 109, 0.4);
   transition: var(--transition);
@@ -192,7 +194,7 @@ const terminarDia = () => {
 }
 
 .wallet-icon {
-  font-size: 2rem;
+  font-size: 1.8rem;
 }
 
 .wallet-info {
@@ -201,7 +203,7 @@ const terminarDia = () => {
 }
 
 .wallet-label {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: #8a6b00;
   text-transform: uppercase;
@@ -209,7 +211,7 @@ const terminarDia = () => {
 
 .wallet-balance {
   font-family: 'Fredoka', sans-serif;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: #3d3d3d;
 }
