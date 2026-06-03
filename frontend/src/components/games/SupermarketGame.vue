@@ -28,7 +28,7 @@
       <div class="variant-badge" v-if="variant > 1">
         <span>⚡ Día {{ variant }} — {{ variantLabel }}</span>
       </div>
-      <button class="btn-primary" @click="phase = 'shopping'">
+      <button class="btn-primary" @click="startShopping">
         {{ isEN ? '🛒 Start Shopping' : '🛒 Ir de Compras' }}
       </button>
     </div>
@@ -121,7 +121,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { usePlayerStore } from '../../store/player'
 
 const props  = defineProps({ language: { type: String, default: 'es' } })
@@ -266,10 +266,23 @@ const budget = computed(() => {
   return base[variant.value] ?? 2200
 })
 
+const shuffledPool = ref([])
+
+const buildPool = () => {
+  const source = isEN.value ? allItemsEN : allItemsES
+  // Shuffle items AND options within each item for variety each session
+  const shuffled = [...source]
+    .sort(() => 0.5 - Math.random())
+    .map(item => ({ ...item, options: [...item.options].sort(() => 0.5 - Math.random()) }))
+  shuffledPool.value = shuffled
+}
+
+onMounted(buildPool)
+
 const items = computed(() => {
-  const pool   = isEN.value ? allItemsEN : allItemsES
+  if (!shuffledPool.value.length) buildPool()
   const counts = { 1: 3, 2: 4, 3: 5, 4: 5 }
-  return pool.slice(0, counts[variant.value] ?? 5)
+  return shuffledPool.value.slice(0, counts[variant.value] ?? 5)
 })
 
 const variantLabel = computed(() => {
@@ -278,6 +291,18 @@ const variantLabel = computed(() => {
 })
 
 const currentItem = computed(() => items.value[itemIdx.value])
+
+// ── ACTIONS ───────────────────────────────────────────────────────────────
+
+const startShopping = () => {
+  buildPool()
+  itemIdx.value   = 0
+  pick.value      = null
+  showCalc.value  = false
+  spent.value     = 0
+  choices.value   = []
+  phase.value     = 'shopping'
+}
 
 // ── HELPERS ───────────────────────────────────────────────────────────────
 

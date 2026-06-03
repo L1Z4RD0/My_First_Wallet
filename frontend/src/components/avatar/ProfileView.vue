@@ -33,19 +33,32 @@
     </div>
 
     <transition name="fade" mode="out-in">
-      <div v-if="activeTab === 'avatar'" key="avatar">
-        <AvatarCreator />
-        <div class="profile-pinned" v-if="playerStore.achievements.some(a => a.pinned)">
-          <h3>Insignias Ancladas (Perfil)</h3>
-          <div class="pinned-list">
-            <div class="achievement-badge" v-for="achievement in playerStore.achievements.filter(a => a.pinned)" :key="achievement.id">
-              <span class="badge-icon">{{ achievement.badge }}</span>
-              <div>
+      <div v-if="activeTab === 'avatar'" key="avatar" class="avatar-tab-layout">
+        <!-- Panel izquierdo: Insignias ancladas -->
+        <aside class="pinned-sidebar">
+          <h3>🏅 Mis Insignias</h3>
+          <p class="pinned-hint">Ancla tus logros desde la pestaña Logros</p>
+          <div v-if="playerStore.achievements.some(a => a.pinned)" class="pinned-list-v">
+            <div
+              class="pinned-badge-card"
+              v-for="achievement in playerStore.achievements.filter(a => a.pinned)"
+              :key="achievement.id"
+            >
+              <span class="pb-icon">{{ achievement.badge }}</span>
+              <div class="pb-info">
                 <strong>{{ achievement.title }}</strong>
                 <p>{{ achievement.description }}</p>
               </div>
             </div>
           </div>
+          <div v-else class="no-pins">
+            <span class="np-icon">🔒</span>
+            <p>Desbloquea logros y ancla los que más te gusten</p>
+          </div>
+        </aside>
+        <!-- Panel derecho: Personalización del avatar -->
+        <div class="avatar-main">
+          <AvatarCreator />
         </div>
       </div>
       <div v-else-if="activeTab === 'inventory'" key="inventory" class="inventory-section">
@@ -294,6 +307,92 @@ onMounted(() => {
   box-shadow: var(--shadow-md);
 }
 
+/* Avatar tab two-column layout */
+.avatar-tab-layout {
+  display: grid;
+  grid-template-columns: 230px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.pinned-sidebar {
+  background: white;
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-md);
+  position: sticky;
+  top: 1rem;
+}
+
+.pinned-sidebar h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1.1rem;
+  color: var(--primary-color);
+}
+
+.pinned-hint {
+  font-size: 0.78rem;
+  color: #999;
+  margin: 0 0 1rem;
+  line-height: 1.4;
+}
+
+.avatar-main {
+  min-width: 0;
+}
+
+.pinned-list-v {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pinned-badge-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: #eef0ff;
+  border-radius: 14px;
+  padding: 0.85rem;
+}
+
+.pb-icon {
+  font-size: 1.8rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.pb-info strong {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-dark);
+}
+
+.pb-info p {
+  font-size: 0.75rem;
+  color: #636e72;
+  margin: 0.2rem 0 0;
+  line-height: 1.3;
+}
+
+.no-pins {
+  text-align: center;
+  padding: 1.5rem 0.5rem;
+  color: #aaa;
+}
+
+.np-icon {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.no-pins p {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
 .pinned-list {
   display: flex;
   flex-wrap: wrap;
@@ -433,6 +532,15 @@ onMounted(() => {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 900px) {
+  .avatar-tab-layout {
+    grid-template-columns: 1fr;
+  }
+  .pinned-sidebar {
+    position: static;
+  }
 }
 
 @media (max-width: 768px) {

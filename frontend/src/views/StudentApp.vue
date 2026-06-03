@@ -297,8 +297,11 @@ const onGameCompleted = (result) => {
       modalTitle.value   = result.title || 'Sigue intentándolo'
       modalMessage.value = result.msg   || 'Esta vez no hubo ganancias.'
     }
-    const newAchievements = playerStore.evaluateAchievements()
-    if (newAchievements.length > 0) modalMessage.value += ' ¡Desbloqueaste un logro!'
+    const newAchievementIds = playerStore.evaluateAchievements()
+    newAchievementIds.forEach(id => {
+      const a = playerStore.achievements.find(a => a.id === id)
+      if (a) showNotification('success', `${a.badge} ¡Logro desbloqueado! "${a.title}"`)
+    })
     showRewardModal.value = true
     closeGame()
   }

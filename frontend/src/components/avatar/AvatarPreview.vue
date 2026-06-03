@@ -91,7 +91,8 @@
           <line x1="96" y1="55" x2="104" y2="55" stroke="#2d3436" stroke-width="2" />
         </g>
         <g v-if="config.accessory === 'cap'">
-          <path d="M62,42 Q100,8 138,42 L165,58 L138,62 L62,62 Z" :fill="config.shirtColor" />
+          <path d="M62,42 Q100,8 138,42 L148,55 L138,60 L62,60 Z" :fill="config.shirtColor" />
+          <rect x="54" y="58" width="94" height="8" rx="4" :fill="config.shirtColor" />
         </g>
       </g>
     </svg>
@@ -110,13 +111,13 @@ defineProps({
 <style scoped>
 .avatar-svg-container {
   width: 100%;
-  aspect-ratio: 1/1.2;
+  aspect-ratio: 4 / 5;   /* matches SVG viewBox 200×250 exactly */
   display: flex;
   justify-content: center;
   align-items: center;
   background: white;
   border-radius: 36px;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 20px 50px rgba(0,0,0,0.12);
   border: 1px solid #f1f5f9;
   position: relative;
@@ -125,6 +126,7 @@ defineProps({
 svg {
   width: 100%;
   height: 100%;
+  display: block;
   filter: drop-shadow(0 8px 16px rgba(0,0,0,0.06));
 }
 

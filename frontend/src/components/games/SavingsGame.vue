@@ -75,8 +75,8 @@
       </div>
 
       <!-- Allocation -->
-      <h4>¿Cómo distribuyes tus ${{ Math.round(unallocated + allocated) }}?</h4>
-      <div v-for="inst in instruments" :key="inst.id" class="alloc-row">
+      <h4>¿Cómo distribuyes tus ${{ Math.round(dayTotal) }}?</h4>
+      <div v-for="inst in instruments.filter(i => i.id !== 'cash')" :key="inst.id" class="alloc-row">
         <div class="alloc-info">
           <span>{{ inst.emoji }}</span>
           <span class="alloc-name">{{ inst.name }}</span>
@@ -199,14 +199,14 @@ const depositDaysLeft = ref(0)
 const rewardCoins   = ref(0)
 
 const portfolioState = reactive({ bank: 0, deposit: 0, asset: 0 })
-const allocated      = computed(() => Object.values(portfolioState).reduce((s, v) => s + v, 0))
+const dayTotal       = ref(0)
 const unallocated    = ref(0)
 
-const totalValue = computed(() => {
-  const assetInst = instruments.value.find(i => i.id === 'asset')
-  const assetValue = assetInst ? portfolioState.asset * (1 + todayInflation.value / 100) : 0
-  return portfolioState.bank + portfolioState.deposit + assetValue + unallocated.value
-})
+// Sum of all instrument slots (excluding cash – cash IS unallocated)
+const nonCashSum = () =>
+  Object.keys(portfolioState).reduce((s, k) => s + (Number(portfolioState[k]) || 0), 0)
+
+const totalValue = computed(() => nonCashSum() + unallocated.value)
 
 const targetItems = [
   { emoji: '🎮', name: 'Consola de videojuegos', price: 180 },
@@ -219,36 +219,61 @@ const targetItem = ref(targetItems[0])
 // ── INIT ──────────────────────────────────────────────────────────────────
 
 const startSim = () => {
-  targetItem.value = targetItems[Math.floor(Math.random() * targetItems.length)]
+  targetItem.value    = targetItems[Math.floor(Math.random() * targetItems.length)]
   inflationRate.value = +(config.value.inflBase + (Math.random() * config.value.inflRange)).toFixed(2)
   todayInflation.value = inflationRate.value
-  targetItem.value = { ...targetItem.value, price: +targetItem.value.price }
-  instruments.value.forEach(i => { portfolioState[i.id] = 0 })
-  portfolioState.bank = startAmount.value
-  unallocated.value   = 0
-  depositLocked.value = false
+  targetItem.value    = { ...targetItem.value, price: +targetItem.value.price }
+
+  // Reset only non-cash instruments (cash is tracked via unallocated)
+  Object.keys(portfolioState).forEach(k => { portfolioState[k] = 0 })
+  instruments.value.forEach(i => { if (i.id !== 'cash') portfolioState[i.id] = 0 })
+
+  portfolioState.bank  = startAmount.value
+  unallocated.value    = 0
+  dayTotal.value       = startAmount.value
+  depositLocked.value  = false
+  depositDaysLeft.value = 0
   phase.value = 'sim'
 }
 
 // ── SIM LOGIC ─────────────────────────────────────────────────────────────
 
 const clampAll = (changedId) => {
-  const total = startAmount.value
-  let sum = Object.values(portfolioState).reduce((s, v) => s + v, 0) + unallocated.value
-  if (sum > total) portfolioState[changedId] -= (sum - total)
+  // Prevent negative values
   if (portfolioState[changedId] < 0) portfolioState[changedId] = 0
+
+  // Prevent over-allocation beyond dayTotal
+  const allocated = nonCashSum()
+  if (allocated > dayTotal.value) {
+    portfolioState[changedId] = Math.max(0, portfolioState[changedId] - (allocated - dayTotal.value))
+  }
+
+  // Recalculate unallocated (= cash): what's left after all instruments
+  unallocated.value = Math.max(0, dayTotal.value - nonCashSum())
+
+  // Lock deposit when the user allocates money to it for the first time
+  const depositInst = instruments.value.find(i => i.id === 'deposit')
+  if (changedId === 'deposit' && depositInst) {
+    if (portfolioState.deposit > 0 && !depositLocked.value) {
+      depositLocked.value   = true
+      depositDaysLeft.value = depositInst.lockDays
+    } else if (portfolioState.deposit === 0) {
+      depositLocked.value   = false
+      depositDaysLeft.value = 0
+    }
+  }
 }
 
 const advanceDay = () => {
-  // Apply bank interest
+  // Apply bank interest (tiny daily rate)
   portfolioState.bank = portfolioState.bank * (1 + 0.0001)
 
-  // Apply asset inflation protection
+  // Asset tracks inflation (protected)
   if (portfolioState.asset) {
     portfolioState.asset = portfolioState.asset * (1 + todayInflation.value / 100)
   }
 
-  // Apply deposit lock
+  // Deposit: count down lock days, release when done
   if (depositLocked.value) {
     depositDaysLeft.value--
     if (depositDaysLeft.value <= 0) {
@@ -258,13 +283,16 @@ const advanceDay = () => {
     }
   }
 
-  // Cash inflation drag
+  // Cash (unallocated) loses value to inflation
   unallocated.value = unallocated.value * (1 - todayInflation.value / 100)
 
   // Item price rises with inflation
   targetItem.value = { ...targetItem.value, price: targetItem.value.price * (1 + todayInflation.value / 100) }
 
-  // Check for inflation event
+  // Update dayTotal so sliders on the next day use the new totals
+  dayTotal.value = nonCashSum() + unallocated.value
+
+  // Resolve next day's inflation event
   const ev = inflationEvents.find(e => e.day === currentDay.value + 1)
   inflEvent.value = ev ?? null
   if (ev) todayInflation.value = ev.newRate

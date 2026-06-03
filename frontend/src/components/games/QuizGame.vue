@@ -376,8 +376,7 @@ const startGame = () => {
   const pool = questions.filter(q => allowed.includes(q.difficulty)).sort(() => 0.5 - Math.random())
   sessionQs.value = pool.slice(0, questionCount.value)
   currentBalance.value = player.dineroDisponible
-  player.juegosJugadosHoy.quiz = 1
-  player.save()
+  // Flag is set in finish() — don't mark as played until the quiz is actually completed
   state.value = 'stake'
 }
 
@@ -445,6 +444,10 @@ const nextQuestion = () => {
 // ── FINISH ────────────────────────────────────────────────────────────────
 
 const finish = () => {
+  // Mark as played only when the quiz is fully completed
+  player.juegosJugadosHoy.quiz = 1
+  player.save()
+
   const pct    = score.value.correct / questionCount.value
   const reward = Math.max(0, netEarnings.value)
   emit('game-completed', {
