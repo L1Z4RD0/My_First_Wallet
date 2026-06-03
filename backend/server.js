@@ -16,7 +16,9 @@ const GAME_REWARDS = {
   'savings-game':     { full: 200,  repeat: 40  },
   'roulette-game':    { full: 350,  repeat: 70  },
   'investment-game':  { full: 400,  repeat: 80  },
-  'quiz-game':        { full: 300,  repeat: 60  }
+  'quiz-game':        { full: 300,  repeat: 60  },
+  'snowball-game':    { full: 350,  repeat: 70  },
+  'market-game':      { full: 400,  repeat: 80  }
 };
 
 const GRADES = [
