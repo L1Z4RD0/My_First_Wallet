@@ -1,6 +1,17 @@
 import { defineStore } from 'pinia'
 import { usePlayerStore } from './player'
 
+function storageKey(userId) {
+  return userId ? `user_profile_${userId}` : 'user_profile'
+}
+
+function getSessionUserId() {
+  try {
+    const session = JSON.parse(localStorage.getItem('auth_session') || '{}')
+    return session?.user?.id ?? null
+  } catch { return null }
+}
+
 export const useAvatarStore = defineStore('avatar', {
   state: () => ({
     userId: '',
@@ -15,26 +26,29 @@ export const useAvatarStore = defineStore('avatar', {
       accessory: 'none',
       specialEffect: 'none'
     },
-    inventory: [] // Items currently equipped or available to equip
+    inventory: []
   }),
 
   actions: {
     init() {
-      const saved = localStorage.getItem('user_profile')
+      const userId = getSessionUserId()
+      const key = storageKey(userId)
+      const saved = localStorage.getItem(key)
       if (saved) {
         const data = JSON.parse(saved)
-        this.userId = data.userId
-        this.username = data.username || ''
+        this.userId      = data.userId
+        this.username    = data.username || ''
         this.avatarConfig = { ...this.avatarConfig, ...data.avatarConfig }
-        this.inventory = data.inventory || []
+        this.inventory   = data.inventory || []
       } else {
-        this.userId = 'USER-' + Math.random().toString(36).substr(2, 9).toUpperCase()
+        this.userId = userId ? `USER-${userId}` : 'USER-' + Math.random().toString(36).substr(2, 9).toUpperCase()
         this.saveProfile()
       }
     },
 
     saveProfile() {
-      localStorage.setItem('user_profile', JSON.stringify({
+      const userId = getSessionUserId()
+      localStorage.setItem(storageKey(userId), JSON.stringify({
         userId: this.userId,
         username: this.username,
         avatarConfig: this.avatarConfig,
@@ -49,9 +63,8 @@ export const useAvatarStore = defineStore('avatar', {
 
     updateConfig(key, value) {
       if (key === 'skin') {
-        // Special logic for full skins
         this.avatarConfig = { ...this.avatarConfig, ...value }
-      } else if (this.avatarConfig.hasOwnProperty(key)) {
+      } else if (Object.prototype.hasOwnProperty.call(this.avatarConfig, key)) {
         this.avatarConfig[key] = value
       }
       this.saveProfile()
@@ -60,13 +73,7 @@ export const useAvatarStore = defineStore('avatar', {
     buyItem(item) {
       const playerStore = usePlayerStore()
       if (playerStore.gastarDinero(item.price)) {
-        this.inventory.push({
-          id: item.id,
-          name: item.name,
-          type: item.type,
-          value: item.value, // Color or style string
-          icon: item.icon
-        })
+        this.inventory.push({ id: item.id, name: item.name, type: item.type, value: item.value, icon: item.icon })
         this.saveProfile()
         return { success: true }
       }

@@ -1,17 +1,20 @@
 import { defineStore } from 'pinia'
 
 const defaultAchievements = [
-  { id: 'first-game', title: 'Primer juego', description: 'Completa tu primer juego educativo.', difficulty: 'easy', badge: '🏅', unlocked: false, pinned: false },
-  { id: 'savings-star', title: 'Estrella del ahorro', description: 'Deposita al menos 50 monedas en el banco.', difficulty: 'medium', badge: '🏵️', unlocked: false, pinned: false },
-  { id: 'wealth-wizard', title: 'Mago del patrimonio', description: 'Alcanza 200 monedas de patrimonio total.', difficulty: 'hard', badge: '🥇', unlocked: false, pinned: false },
-  { id: 'streak-master', title: 'Racha de estelar', description: 'Conéctate 3 días seguidos.', difficulty: 'hard', badge: '🌟', unlocked: false, pinned: false },
-  { id: 'debt-free', title: 'Libre de deuda', description: 'Termina un día sin deudas.', difficulty: 'medium', badge: '✨', unlocked: false, pinned: false }
+  { id: 'first-game',    title: 'Primer juego',       description: 'Completa tu primer juego educativo.',          difficulty: 'easy',   badge: '🏅', unlocked: false, pinned: false },
+  { id: 'savings-star',  title: 'Estrella del ahorro', description: 'Deposita al menos 50 monedas en el banco.',    difficulty: 'medium', badge: '🏵️', unlocked: false, pinned: false },
+  { id: 'wealth-wizard', title: 'Mago del patrimonio', description: 'Alcanza 200 monedas de patrimonio total.',     difficulty: 'hard',   badge: '🥇', unlocked: false, pinned: false },
+  { id: 'streak-master', title: 'Racha estelar',       description: 'Conéctate 3 días seguidos.',                  difficulty: 'hard',   badge: '🌟', unlocked: false, pinned: false },
+  { id: 'debt-free',     title: 'Libre de deuda',      description: 'Termina un día sin deudas.',                  difficulty: 'medium', badge: '✨', unlocked: false, pinned: false }
 ]
 
-const loadState = () => {
-  const saved = localStorage.getItem('playerState')
-  const defaultState = {
-    nombre: "Alex",
+function storageKey(userId) {
+  return userId ? `playerState_${userId}` : 'playerState'
+}
+
+function defaultState() {
+  return {
+    nombre: 'Jugador',
     dineroDisponible: 50,
     dineroAhorrado: 0,
     dineroInvertido: 0,
@@ -20,50 +23,76 @@ const loadState = () => {
     energiaMaxima: 5,
     diaActual: 1,
     historial: [],
-    rachas: {
-      diasSinDeuda: 0,
-      diasConAhorro: 0
-    },
-    juegosJugadosHoy: {
-      presupuesto: 0,
-      supermercado: 0,
-      alcancia: 0,
-      ruleta: 0,
-      inversion: 0,
-      quiz: 0
-    },
+    rachas: { diasSinDeuda: 0, diasConAhorro: 0 },
+    juegosJugadosHoy: { presupuesto: 0, supermercado: 0, alcancia: 0, ruleta: 0, inversion: 0, quiz: 0 },
     ultimoReset: null,
     lastLogin: null,
     consecutiveDays: 0,
     achievements: defaultAchievements
   }
+}
 
+function loadState(userId) {
+  const key = storageKey(userId)
+  const saved = localStorage.getItem(key)
+  const base = defaultState()
   if (saved) {
     try {
       const parsed = JSON.parse(saved)
-      if (!parsed.achievements) {
-        parsed.achievements = defaultAchievements
-      }
+      if (!parsed.achievements) parsed.achievements = defaultAchievements
       return parsed
-    } catch (e) {
-      console.error('Error parseando playerState', e)
-    }
+    } catch { /* ignore */ }
   }
-  return defaultState
+  return base
 }
 
 export const usePlayerStore = defineStore('player', {
-  state: () => loadState(),
-  getters: {
-    enDeuda: (state) => state.deuda > 0,
-    energiaAgotada: (state) => state.energiaActual <= 0,
-    patrimonioTotal: (state) => state.dineroDisponible + state.dineroAhorrado + state.dineroInvertido - state.deuda,
-    totalJuegosHoy: (state) => Object.values(state.juegosJugadosHoy).reduce((sum, val) => sum + val, 0)
+  state: () => {
+    // Lee el userId guardado en la sesión de auth para cargar el estado correcto
+    let userId = null
+    try {
+      const session = JSON.parse(localStorage.getItem('auth_session') || '{}')
+      userId = session?.user?.id ?? null
+    } catch { /* ignore */ }
+    return loadState(userId)
   },
+
+  getters: {
+    enDeuda:        (state) => state.deuda > 0,
+    energiaAgotada: (state) => state.energiaActual <= 0,
+    patrimonioTotal:(state) => state.dineroDisponible + state.dineroAhorrado + state.dineroInvertido - state.deuda,
+    totalJuegosHoy: (state) => Object.values(state.juegosJugadosHoy).reduce((s, v) => s + v, 0)
+  },
+
   actions: {
-    save() {
-      localStorage.setItem('playerState', JSON.stringify(this.$state))
+    _userId() {
+      try {
+        const session = JSON.parse(localStorage.getItem('auth_session') || '{}')
+        return session?.user?.id ?? null
+      } catch { return null }
     },
+
+    save() {
+      localStorage.setItem(storageKey(this._userId()), JSON.stringify(this.$state))
+    },
+
+    // Recarga el estado cuando cambia el usuario (llamar al hacer login)
+    reloadForUser(userId) {
+      const state = loadState(userId)
+      Object.assign(this.$state, state)
+    },
+
+    syncToBackend() {
+      const token = JSON.parse(localStorage.getItem('auth_session') || '{}')?.token
+      if (!token) return
+      const unlockedCount = this.achievements.filter(a => a.unlocked).length
+      fetch('http://localhost:3000/api/player/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ consecutive_days: this.consecutiveDays, achievements_count: unlockedCount })
+      }).catch(() => { /* sync silencioso */ })
+    },
+
     gastarEnergia(cantidad = 1) {
       if (this.energiaActual >= cantidad) {
         this.energiaActual -= cantidad
@@ -72,10 +101,12 @@ export const usePlayerStore = defineStore('player', {
       }
       return false
     },
+
     ganarDinero(cantidad) {
       this.dineroDisponible += cantidad
       this.save()
     },
+
     gastarDinero(cantidad) {
       if (this.dineroDisponible >= cantidad) {
         this.dineroDisponible -= cantidad
@@ -84,41 +115,38 @@ export const usePlayerStore = defineStore('player', {
       }
       return false
     },
+
     jugarMinijuego(tipoJuego, recompensaBase) {
-      if (!this.gastarEnergia(1)) return { success: false, msg: "Sin energía suficiente." };
+      if (!this.gastarEnergia(1)) return { success: false, msg: 'Sin energía suficiente.' }
 
-      const vecesJugado = this.juegosJugadosHoy[tipoJuego] || 0;
-      let multiplicador = 1;
-      
-      if (vecesJugado === 1) multiplicador = 0.5;
-      else if (vecesJugado >= 2) multiplicador = 0;
+      const vecesJugado = this.juegosJugadosHoy[tipoJuego] || 0
+      let multiplicador = 1
+      if (vecesJugado === 1)  multiplicador = 0.5
+      else if (vecesJugado >= 2) multiplicador = 0
 
-      const recompensaReal = Math.floor(recompensaBase * multiplicador);
-      
-      if (recompensaReal > 0) {
-        this.ganarDinero(recompensaReal);
-      }
-      
-      this.juegosJugadosHoy[tipoJuego] = vecesJugado + 1;
-      this.save();
-      this.evaluateAchievements();
-      return { success: true, recompensa: recompensaReal, multiplicador };
+      const recompensaReal = Math.floor(recompensaBase * multiplicador)
+      if (recompensaReal > 0) this.ganarDinero(recompensaReal)
+
+      this.juegosJugadosHoy[tipoJuego] = vecesJugado + 1
+      this.save()
+      this.evaluateAchievements()
+      return { success: true, recompensa: recompensaReal, multiplicador }
     },
+
     terminarDia() {
-      const GASTOS_DIARIOS = 20;
-      
+      const GASTOS_DIARIOS = 20
+
       if (this.dineroDisponible >= GASTOS_DIARIOS) {
-        this.dineroDisponible -= GASTOS_DIARIOS;
+        this.dineroDisponible -= GASTOS_DIARIOS
       } else {
-        let faltante = GASTOS_DIARIOS - this.dineroDisponible;
-        this.dineroDisponible = 0;
-        
+        let faltante = GASTOS_DIARIOS - this.dineroDisponible
+        this.dineroDisponible = 0
         if (this.dineroAhorrado >= faltante) {
-          this.dineroAhorrado -= faltante;
+          this.dineroAhorrado -= faltante
         } else {
-          faltante -= this.dineroAhorrado;
-          this.dineroAhorrado = 0;
-          this.deuda += faltante;
+          faltante -= this.dineroAhorrado
+          this.dineroAhorrado = 0
+          this.deuda += faltante
         }
       }
 
@@ -127,173 +155,123 @@ export const usePlayerStore = defineStore('player', {
         dineroFinal: this.patrimonioTotal,
         entroEnDeuda: this.enDeuda,
         gastos: GASTOS_DIARIOS
-      });
+      })
 
-      if (this.deuda === 0) {
-        this.rachas.diasSinDeuda += 1;
-      } else {
-        this.rachas.diasSinDeuda = 0;
-      }
+      if (this.deuda === 0) this.rachas.diasSinDeuda += 1
+      else this.rachas.diasSinDeuda = 0
 
-      if (this.dineroAhorrado > 0) {
-        this.rachas.diasConAhorro += 1;
-      } else {
-        this.rachas.diasConAhorro = 0;
-      }
+      if (this.dineroAhorrado > 0) this.rachas.diasConAhorro += 1
+      else this.rachas.diasConAhorro = 0
 
       if (this.deuda > 0) {
-        this.energiaMaxima = 3;
+        this.energiaMaxima = 3
       } else {
-        let bonus = 0;
-        if (this.rachas.diasSinDeuda > 0) bonus += 1;
-        if (this.rachas.diasConAhorro > 0) bonus += 1;
-        this.energiaMaxima = Math.min(5 + bonus, 6);
+        let bonus = 0
+        if (this.rachas.diasSinDeuda > 0) bonus += 1
+        if (this.rachas.diasConAhorro > 0) bonus += 1
+        this.energiaMaxima = Math.min(5 + bonus, 6)
       }
 
       if (this.dineroAhorrado > 0) {
-        const capitalGenerador = Math.min(this.dineroAhorrado, 200);
-        const interes = Math.floor(capitalGenerador * 0.01);
-        const interesReal = interes > 0 ? interes : (capitalGenerador >= 10 ? 1 : 0);
-        this.dineroAhorrado += interesReal;
+        const capitalGenerador = Math.min(this.dineroAhorrado, 200)
+        const interes = Math.floor(capitalGenerador * 0.01)
+        const interesReal = interes > 0 ? interes : (capitalGenerador >= 10 ? 1 : 0)
+        this.dineroAhorrado += interesReal
       }
 
-      this.energiaActual = this.energiaMaxima;
-      this.diaActual += 1;
-      this.juegosJugadosHoy = {
-        presupuesto: 0, supermercado: 0, alcancia: 0, ruleta: 0, inversion: 0, quiz: 0
-      };
-      this.save();
-      this.evaluateAchievements();
+      this.energiaActual = this.energiaMaxima
+      this.diaActual += 1
+      this.juegosJugadosHoy = { presupuesto: 0, supermercado: 0, alcancia: 0, ruleta: 0, inversion: 0, quiz: 0 }
+      this.save()
+      this.evaluateAchievements()
     },
+
     pagarDeuda(cantidad) {
-      const aPagar = Math.min(cantidad, this.deuda, this.dineroDisponible);
+      const aPagar = Math.min(cantidad, this.deuda, this.dineroDisponible)
       if (aPagar > 0) {
-        this.dineroDisponible -= aPagar;
-        this.deuda -= aPagar;
-        
-        if (this.deuda === 0) {
-          this.energiaMaxima = 5;
-        }
-        
-        this.save();
-        this.evaluateAchievements();
-        return true;
+        this.dineroDisponible -= aPagar
+        this.deuda -= aPagar
+        if (this.deuda === 0) this.energiaMaxima = 5
+        this.save()
+        this.evaluateAchievements()
+        return true
       }
-      return false;
+      return false
     },
+
     depositarAhorro(cantidad) {
-      if (this.enDeuda) return false;
-      
+      if (this.enDeuda) return false
       if (this.dineroDisponible >= cantidad && cantidad > 0) {
-        this.dineroDisponible -= cantidad;
-        this.dineroAhorrado += cantidad;
-        this.save();
-        this.evaluateAchievements();
-        return true;
+        this.dineroDisponible -= cantidad
+        this.dineroAhorrado += cantidad
+        this.save()
+        this.evaluateAchievements()
+        return true
       }
-      return false;
+      return false
     },
+
     retirarAhorro(cantidad) {
       if (this.dineroAhorrado >= cantidad && cantidad > 0) {
-        this.dineroAhorrado -= cantidad;
-        this.dineroDisponible += cantidad;
-        this.save();
-        return true;
+        this.dineroAhorrado -= cantidad
+        this.dineroDisponible += cantidad
+        this.save()
+        return true
       }
-      return false;
+      return false
     },
+
     checkLoginStreak() {
-      const today = new Date().toISOString().slice(0, 10);
-      if (this.lastLogin === today) return;
-
-      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-      if (this.lastLogin === yesterday) {
-        this.consecutiveDays = (this.consecutiveDays || 0) + 1;
-      } else {
-        this.consecutiveDays = 1;
-      }
-      this.lastLogin = today;
-      this.save();
-      this.evaluateAchievements();
+      const today = new Date().toISOString().slice(0, 10)
+      if (this.lastLogin === today) return
+      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+      if (this.lastLogin === yesterday) this.consecutiveDays = (this.consecutiveDays || 0) + 1
+      else this.consecutiveDays = 1
+      this.lastLogin = today
+      this.save()
+      this.evaluateAchievements()
+      this.syncToBackend()
     },
+
     unlockAchievement(id) {
-      const achievement = this.achievements.find((a) => a.id === id);
-      if (achievement && !achievement.unlocked) {
-        achievement.unlocked = true;
-        this.save();
-        return achievement;
-      }
-      return null;
+      const a = this.achievements.find(a => a.id === id)
+      if (a && !a.unlocked) { a.unlocked = true; this.save(); return a }
+      return null
     },
+
     togglePinAchievement(id) {
-      const achievement = this.achievements.find((a) => a.id === id);
-      if (achievement && achievement.unlocked) {
-        achievement.pinned = !achievement.pinned;
-        this.save();
-        return true;
-      }
-      return false;
+      const a = this.achievements.find(a => a.id === id)
+      if (a && a.unlocked) { a.pinned = !a.pinned; this.save(); return true }
+      return false
     },
+
     evaluateAchievements() {
-      const newlyUnlocked = [];
-      const totalJugados = Object.values(this.juegosJugadosHoy).reduce((sum, val) => sum + val, 0);
+      const newlyUnlocked = []
+      const totalJugados = Object.values(this.juegosJugadosHoy).reduce((s, v) => s + v, 0)
 
-      if (totalJugados >= 1) {
-        const unlocked = this.unlockAchievement('first-game')
-        if (unlocked) newlyUnlocked.push(unlocked)
-      }
+      if (totalJugados >= 1)         { const u = this.unlockAchievement('first-game');    if (u) newlyUnlocked.push(u) }
+      if (this.dineroAhorrado >= 50) { const u = this.unlockAchievement('savings-star');  if (u) newlyUnlocked.push(u) }
+      if (this.patrimonioTotal >= 200){ const u = this.unlockAchievement('wealth-wizard'); if (u) newlyUnlocked.push(u) }
+      if (this.consecutiveDays >= 3) { const u = this.unlockAchievement('streak-master'); if (u) newlyUnlocked.push(u) }
+      if (!this.enDeuda && this.diaActual > 1) { const u = this.unlockAchievement('debt-free'); if (u) newlyUnlocked.push(u) }
 
-      if (this.dineroAhorrado >= 50) {
-        const unlocked = this.unlockAchievement('savings-star')
-        if (unlocked) newlyUnlocked.push(unlocked)
-      }
-
-      if (this.patrimonioTotal >= 200) {
-        const unlocked = this.unlockAchievement('wealth-wizard')
-        if (unlocked) newlyUnlocked.push(unlocked)
-      }
-
-      if (this.consecutiveDays >= 3) {
-        const unlocked = this.unlockAchievement('streak-master')
-        if (unlocked) newlyUnlocked.push(unlocked)
-      }
-
-      if (!this.enDeuda && this.diaActual > 1) {
-        const unlocked = this.unlockAchievement('debt-free')
-        if (unlocked) newlyUnlocked.push(unlocked)
-      }
-
-      return newlyUnlocked.map((achievement) => achievement.id);
+      if (newlyUnlocked.length > 0) this.syncToBackend()
+      return newlyUnlocked.map(a => a.id)
     },
-    resetJuego() {
-      const ahora = new Date().getTime();
-      const UN_MES_MS = 30 * 24 * 60 * 60 * 1000;
-      
-      if (this.ultimoReset && (ahora - this.ultimoReset < UN_MES_MS)) {
-        const diasRestantes = Math.ceil((UN_MES_MS - (ahora - this.ultimoReset)) / (24 * 60 * 60 * 1000));
-        return { success: false, msg: `Solo puedes reiniciar una vez al mes. Faltan ${diasRestantes} días.` };
-      }
 
-      localStorage.removeItem('playerState');
-      const base = {
-        nombre: "Alex", dineroDisponible: 50, dineroAhorrado: 0, dineroInvertido: 0,
-        deuda: 0, energiaActual: 5, energiaMaxima: 5, diaActual: 1, historial: [],
-        rachas: { diasSinDeuda: 0, diasConAhorro: 0 },
-        juegosJugadosHoy: { presupuesto: 0, supermercado: 0, alcancia: 0, ruleta: 0, inversion: 0, quiz: 0 },
-        ultimoReset: ahora,
-        lastLogin: null,
-        consecutiveDays: 0,
-        achievements: [
-          { id: 'first-game', title: 'Primer juego', description: 'Completa tu primer juego educativo.', difficulty: 'easy', badge: '🏅', unlocked: false, pinned: false },
-          { id: 'savings-star', title: 'Estrella del ahorro', description: 'Deposita al menos 50 monedas en el banco.', difficulty: 'medium', badge: '🏵️', unlocked: false, pinned: false },
-          { id: 'wealth-wizard', title: 'Mago del patrimonio', description: 'Alcanza 200 monedas de patrimonio total.', difficulty: 'hard', badge: '🥇', unlocked: false, pinned: false },
-          { id: 'streak-master', title: 'Racha de estelar', description: 'Conéctate 3 días seguidos.', difficulty: 'hard', badge: '🌟', unlocked: false, pinned: false },
-          { id: 'debt-free', title: 'Libre de deuda', description: 'Termina un día sin deudas.', difficulty: 'medium', badge: '✨', unlocked: false, pinned: false }
-        ]
-      };
-      Object.assign(this.$state, base);
-      this.save();
-      return { success: true, msg: "Juego reiniciado correctamente." };
+    resetJuego() {
+      const ahora = new Date().getTime()
+      const UN_MES_MS = 30 * 24 * 60 * 60 * 1000
+      if (this.ultimoReset && (ahora - this.ultimoReset < UN_MES_MS)) {
+        const diasRestantes = Math.ceil((UN_MES_MS - (ahora - this.ultimoReset)) / (24 * 60 * 60 * 1000))
+        return { success: false, msg: `Solo puedes reiniciar una vez al mes. Faltan ${diasRestantes} días.` }
+      }
+      const userId = this._userId()
+      localStorage.removeItem(storageKey(userId))
+      const base = { ...defaultState(), ultimoReset: ahora }
+      Object.assign(this.$state, base)
+      this.save()
+      return { success: true, msg: 'Juego reiniciado correctamente.' }
     }
   }
 })
