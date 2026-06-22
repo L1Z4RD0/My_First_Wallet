@@ -59,6 +59,27 @@ async function initDb() {
   await addColumnIfNotExists(db, 'users', 'grade', 'INTEGER');
   await addColumnIfNotExists(db, 'users', 'created_by', 'INTEGER');
 
+  // Tablas de cursos
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS courses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      grade INTEGER NOT NULL,
+      teacher_id INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(teacher_id) REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS course_students (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      course_id INTEGER NOT NULL,
+      student_id INTEGER NOT NULL,
+      UNIQUE(course_id, student_id),
+      FOREIGN KEY(course_id) REFERENCES courses(id) ON DELETE CASCADE,
+      FOREIGN KEY(student_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+  `);
+
   // Seed del administrador si no existe
   const adminExists = await db.get("SELECT id FROM users WHERE username = 'admin'");
   if (!adminExists) {
@@ -73,6 +94,40 @@ async function initDb() {
   const legacyUser = await db.get('SELECT * FROM users WHERE id = 1');
   if (!legacyUser) {
     await db.run("INSERT INTO users (id, username, balance) VALUES (1, 'jugador_1', 0)");
+  }
+
+  // Seed cursos y alumnos de ejemplo
+  const curso5Exists = await db.get("SELECT id FROM courses WHERE name = '5to Básico A'");
+  if (!curso5Exists) {
+    const adminUser = await db.get("SELECT id FROM users WHERE username = 'admin'");
+    const adminId = adminUser?.id;
+
+    const r5 = await db.run("INSERT INTO courses (name, grade) VALUES ('5to Básico A', 5)");
+    const r8 = await db.run("INSERT INTO courses (name, grade) VALUES ('8vo Básico A', 8)");
+
+    const genericHash = await bcrypt.hash('Alumno1234', 10);
+
+    for (let i = 1; i <= 20; i++) {
+      const num = String(i).padStart(2, '0');
+      const u5 = `alumno5_${num}`;
+      const u8 = `alumno8_${num}`;
+      const e5 = await db.get('SELECT id FROM users WHERE username = ?', [u5]);
+      const e8 = await db.get('SELECT id FROM users WHERE username = ?', [u8]);
+      if (!e5) {
+        const res5 = await db.run(
+          'INSERT INTO users (username, password_hash, role, grade, created_by) VALUES (?, ?, ?, ?, ?)',
+          [u5, genericHash, 'alumno', 5, adminId]
+        );
+        await db.run('INSERT INTO course_students (course_id, student_id) VALUES (?, ?)', [r5.lastID, res5.lastID]);
+      }
+      if (!e8) {
+        const res8 = await db.run(
+          'INSERT INTO users (username, password_hash, role, grade, created_by) VALUES (?, ?, ?, ?, ?)',
+          [u8, genericHash, 'alumno', 8, adminId]
+        );
+        await db.run('INSERT INTO course_students (course_id, student_id) VALUES (?, ?)', [r8.lastID, res8.lastID]);
+      }
+    }
   }
 
   return db;

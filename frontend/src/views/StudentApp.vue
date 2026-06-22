@@ -107,6 +107,8 @@ import InvestmentGame          from '../components/games/InvestmentGame.vue'
 import QuizGame                from '../components/games/QuizGame.vue'
 import SnowballGame            from '../components/games/SnowballGame.vue'
 import InternationalMarketGame from '../components/games/InternationalMarketGame.vue'
+import KioskGame              from '../components/games/KioskGame.vue'
+import SmartShoppingGame      from '../components/games/SmartShoppingGame.vue'
 
 const playerStore = usePlayerStore()
 const avatarStore = useAvatarStore()
@@ -179,6 +181,26 @@ const mathGames = ref([
     bgColor: '#6c5ce7',
     icon: '❄️'
   },
+  {
+    id: 'kiosk-game',
+    title: 'Administra Tu Kiosco',
+    englishTitle: 'Run Your Kiosk',
+    level: 2,
+    description: 'Compra productos, fija precios y vende en el kiosco escolar. ¡Aprende a generar ganancias!',
+    englishDescription: 'Buy products, set prices and sell at the school kiosk. Learn to generate profit!',
+    bgColor: '#f39c12',
+    icon: '🏪'
+  },
+  {
+    id: 'shopping-game',
+    title: 'Compras Inteligentes',
+    englishTitle: 'Smart International Shopping',
+    level: 2,
+    description: 'Calcula el costo real de una compra internacional: envío, IVA y aranceles.',
+    englishDescription: 'Calculate the real cost of an international purchase: shipping, VAT and customs.',
+    bgColor: '#0984e3',
+    icon: '🌎'
+  },
 ])
 
 const englishGames = ref([
@@ -222,6 +244,26 @@ const englishGames = ref([
     bgColor: '#1a1a2e',
     icon: '🌐'
   },
+  {
+    id: 'kiosk-game',
+    title: 'El Kiosco (EN)',
+    englishTitle: 'Run Your Kiosk',
+    level: 2,
+    description: 'Administra el kiosco escolar. Eventos y productos descritos en inglés.',
+    englishDescription: 'Manage the school kiosk. All events and product descriptions are in English!',
+    bgColor: '#e67e22',
+    icon: '🏪'
+  },
+  {
+    id: 'shopping-game',
+    title: 'Compras Internacionales (EN)',
+    englishTitle: 'Smart International Shopping',
+    level: 2,
+    description: 'Calcula el costo real de importaciones en inglés: shipping, VAT y customs.',
+    englishDescription: 'Calculate real import costs in English: product price, shipping, VAT and customs duties!',
+    bgColor: '#6c5ce7',
+    icon: '🌎'
+  },
 ])
 
 // ── COMPONENT MAP ─────────────────────────────────────────────────────────
@@ -235,6 +277,8 @@ const componentMap = {
   'quiz-game':        QuizGame,
   'snowball-game':    SnowballGame,
   'market-game':      InternationalMarketGame,
+  'kiosk-game':         KioskGame,
+  'shopping-game':      SmartShoppingGame,
 }
 
 // ── STATE ─────────────────────────────────────────────────────────────────

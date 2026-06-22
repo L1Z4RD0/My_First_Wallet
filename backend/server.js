@@ -153,6 +153,153 @@ async function startServer() {
     }
   });
 
+  // ── CURSOS (admin) ────────────────────────────────────────────────────────────
+  app.get('/api/admin/courses', authMiddleware, requireRole('admin'), async (req, res) => {
+    try {
+      const courses = await db.all(
+        `SELECT c.id, c.name, c.grade, c.teacher_id, c.created_at,
+                u.username AS teacher_name,
+                COUNT(cs.student_id) AS student_count
+         FROM courses c
+         LEFT JOIN users u ON c.teacher_id = u.id
+         LEFT JOIN course_students cs ON c.id = cs.course_id
+         GROUP BY c.id
+         ORDER BY c.grade, c.name`
+      );
+      res.json(courses);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Error al obtener cursos' });
+    }
+  });
+
+  app.post('/api/admin/courses', authMiddleware, requireRole('admin'), async (req, res) => {
+    const { name, grade } = req.body;
+    if (!name || !grade || grade < 1 || grade > 8)
+      return res.status(400).json({ error: 'Nombre y grado válido son requeridos' });
+    try {
+      const result = await db.run('INSERT INTO courses (name, grade) VALUES (?, ?)', [name, grade]);
+      res.json({ success: true, id: result.lastID, name, grade });
+    } catch (error) {
+      res.status(500).json({ error: 'Error al crear curso' });
+    }
+  });
+
+  app.put('/api/admin/courses/:id/teacher', authMiddleware, requireRole('admin'), async (req, res) => {
+    const { teacher_id } = req.body;
+    const { id } = req.params;
+    try {
+      if (teacher_id) {
+        const teacher = await db.get("SELECT id FROM users WHERE id = ? AND role = 'docente'", [teacher_id]);
+        if (!teacher) return res.status(404).json({ error: 'Docente no encontrado' });
+      }
+      await db.run('UPDATE courses SET teacher_id = ? WHERE id = ?', [teacher_id || null, id]);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Error al asignar docente' });
+    }
+  });
+
+  app.post('/api/admin/courses/:id/assign-student', authMiddleware, requireRole('admin'), async (req, res) => {
+    const { student_id } = req.body;
+    const courseId = req.params.id;
+    if (!student_id) return res.status(400).json({ error: 'student_id requerido' });
+    try {
+      const countRow = await db.get('SELECT COUNT(*) as cnt FROM course_students WHERE course_id = ?', [courseId]);
+      if (countRow.cnt >= 20) return res.status(400).json({ error: 'El curso ya tiene 20 alumnos (máximo)' });
+      await db.run('INSERT OR IGNORE INTO course_students (course_id, student_id) VALUES (?, ?)', [courseId, student_id]);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Error al asignar alumno' });
+    }
+  });
+
+  app.delete('/api/admin/courses/:id', authMiddleware, requireRole('admin'), async (req, res) => {
+    try {
+      await db.run('DELETE FROM courses WHERE id = ?', [req.params.id]);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Error al eliminar curso' });
+    }
+  });
+
+  app.get('/api/admin/courses/:id/students', authMiddleware, requireRole('admin'), async (req, res) => {
+    try {
+      const students = await db.all(
+        `SELECT u.id, u.username, u.grade,
+                us.consecutive_days, us.achievements_count, us.last_login,
+                (SELECT COUNT(*) FROM game_completions WHERE user_id = u.id) AS games_played
+         FROM course_students cs
+         JOIN users u ON cs.student_id = u.id
+         LEFT JOIN user_stats us ON u.id = us.user_id
+         WHERE cs.course_id = ?
+         ORDER BY u.username`,
+        [req.params.id]
+      );
+      res.json(students);
+    } catch (error) {
+      res.status(500).json({ error: 'Error al obtener alumnos del curso' });
+    }
+  });
+
+  // ── BULK IMPORT CSV ───────────────────────────────────────────────────────────
+  app.post('/api/admin/bulk-import', authMiddleware, requireRole('admin'), async (req, res) => {
+    const { rows } = req.body; // [{ username, password, grade, course_name }]
+    if (!Array.isArray(rows) || rows.length === 0)
+      return res.status(400).json({ error: 'No hay filas para importar' });
+
+    const results = { created: 0, skipped: 0, errors: [] };
+
+    for (let i = 0; i < rows.length; i++) {
+      const { username, password, grade, course_name } = rows[i];
+      const lineNum = i + 2;
+      if (!username || !password || !grade) {
+        results.errors.push(`Fila ${lineNum}: username, password y grade son obligatorios`);
+        results.skipped++;
+        continue;
+      }
+      const gradeNum = parseInt(grade);
+      if (isNaN(gradeNum) || gradeNum < 1 || gradeNum > 8) {
+        results.errors.push(`Fila ${lineNum}: grado inválido "${grade}"`);
+        results.skipped++;
+        continue;
+      }
+      try {
+        const exists = await db.get('SELECT id FROM users WHERE username = ?', [username]);
+        if (exists) {
+          results.errors.push(`Fila ${lineNum}: usuario "${username}" ya existe`);
+          results.skipped++;
+          continue;
+        }
+        const hash = await bcrypt.hash(password, 10);
+        const newUser = await db.run(
+          'INSERT INTO users (username, password_hash, role, grade, created_by) VALUES (?, ?, ?, ?, ?)',
+          [username, hash, 'alumno', gradeNum, req.userId]
+        );
+        if (course_name) {
+          let course = await db.get('SELECT id FROM courses WHERE name = ?', [course_name]);
+          if (!course) {
+            const cr = await db.run('INSERT INTO courses (name, grade) VALUES (?, ?)', [course_name, gradeNum]);
+            course = { id: cr.lastID };
+          }
+          const countRow = await db.get('SELECT COUNT(*) as cnt FROM course_students WHERE course_id = ?', [course.id]);
+          if (countRow.cnt >= 20) {
+            results.errors.push(`Fila ${lineNum}: curso "${course_name}" ya tiene 20 alumnos (máximo)`);
+            results.skipped++;
+            await db.run('DELETE FROM users WHERE id = ?', [newUser.lastID]);
+            continue;
+          }
+          await db.run('INSERT OR IGNORE INTO course_students (course_id, student_id) VALUES (?, ?)', [course.id, newUser.lastID]);
+        }
+        results.created++;
+      } catch (error) {
+        results.errors.push(`Fila ${lineNum}: error interno - ${error.message}`);
+        results.skipped++;
+      }
+    }
+    res.json(results);
+  });
+
   app.delete('/api/admin/users/:id', authMiddleware, requireRole('admin'), async (req, res) => {
     const { id } = req.params;
     try {
@@ -169,28 +316,53 @@ async function startServer() {
   });
 
   // ── DOCENTE ───────────────────────────────────────────────────────────────────
+  app.get('/api/teacher/courses', authMiddleware, requireRole('docente', 'admin'), async (req, res) => {
+    try {
+      const whereClause = req.userRole === 'admin' ? '' : 'WHERE c.teacher_id = ?';
+      const params = req.userRole === 'admin' ? [] : [req.userId];
+      const courses = await db.all(
+        `SELECT c.id, c.name, c.grade, COUNT(cs.student_id) AS student_count
+         FROM courses c
+         LEFT JOIN course_students cs ON c.id = cs.course_id
+         ${whereClause}
+         GROUP BY c.id
+         ORDER BY c.grade, c.name`,
+        params
+      );
+      res.json(courses);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Error al obtener cursos del docente' });
+    }
+  });
+
   app.get('/api/teacher/students', authMiddleware, requireRole('docente', 'admin'), async (req, res) => {
     try {
-      const createdBy = req.userRole === 'admin' ? null : req.userId;
-      const query = createdBy
-        ? `SELECT u.id, u.username, u.grade,
-                  us.consecutive_days, us.achievements_count, us.last_login,
-                  (SELECT COUNT(*) FROM game_completions WHERE user_id = u.id) AS games_played
-           FROM users u
-           LEFT JOIN user_stats us ON u.id = us.user_id
-           WHERE u.role = 'alumno' AND u.created_by = ?
-           ORDER BY u.grade, u.username`
-        : `SELECT u.id, u.username, u.grade,
+      if (req.userRole === 'admin') {
+        const students = await db.all(
+          `SELECT u.id, u.username, u.grade,
                   us.consecutive_days, us.achievements_count, us.last_login,
                   (SELECT COUNT(*) FROM game_completions WHERE user_id = u.id) AS games_played
            FROM users u
            LEFT JOIN user_stats us ON u.id = us.user_id
            WHERE u.role = 'alumno'
-           ORDER BY u.grade, u.username`;
-
-      const students = createdBy
-        ? await db.all(query, [createdBy])
-        : await db.all(query);
+           ORDER BY u.grade, u.username`
+        );
+        return res.json(students);
+      }
+      // Docente: alumnos de sus cursos asignados
+      const students = await db.all(
+        `SELECT DISTINCT u.id, u.username, u.grade, c.id AS course_id, c.name AS course_name,
+                us.consecutive_days, us.achievements_count, us.last_login,
+                (SELECT COUNT(*) FROM game_completions WHERE user_id = u.id) AS games_played
+         FROM users u
+         JOIN course_students cs ON u.id = cs.student_id
+         JOIN courses c ON cs.course_id = c.id
+         LEFT JOIN user_stats us ON u.id = us.user_id
+         WHERE c.teacher_id = ? AND u.role = 'alumno'
+         ORDER BY c.grade, u.username`,
+        [req.userId]
+      );
       res.json(students);
     } catch (error) {
       console.error(error);
@@ -224,47 +396,45 @@ async function startServer() {
 
   app.get('/api/teacher/kpis', authMiddleware, requireRole('docente', 'admin'), async (req, res) => {
     try {
-      const createdBy = req.userRole === 'admin' ? null : req.userId;
-      const whereClause = createdBy ? 'AND u.created_by = ?' : '';
-      const params = createdBy ? [createdBy] : [];
+      const isAdmin = req.userRole === 'admin';
+      const courseFilter = isAdmin
+        ? { join: '', where: "u.role = 'alumno'", params: [] }
+        : {
+            join: `JOIN course_students cs ON u.id = cs.student_id
+                   JOIN courses c ON cs.course_id = c.id`,
+            where: `c.teacher_id = ${req.userId} AND u.role = 'alumno'`,
+            params: []
+          };
+
+      const { join, where } = courseFilter;
 
       const totalStudents = await db.get(
-        `SELECT COUNT(*) as count FROM users u WHERE u.role = 'alumno' ${whereClause}`,
-        params
+        `SELECT COUNT(DISTINCT u.id) as count
+         FROM users u ${join} WHERE ${where}`
       );
 
       const topParticipation = await db.all(
-        `SELECT u.username, u.grade,
-                COUNT(gc.id) AS games_played
-         FROM users u
+        `SELECT u.username, u.grade, COUNT(gc.id) AS games_played
+         FROM users u ${join}
          LEFT JOIN game_completions gc ON u.id = gc.user_id
-         WHERE u.role = 'alumno' ${whereClause}
-         GROUP BY u.id
-         ORDER BY games_played DESC
-         LIMIT 5`,
-        params
+         WHERE ${where}
+         GROUP BY u.id ORDER BY games_played DESC LIMIT 10`
       );
 
       const topStreak = await db.all(
-        `SELECT u.username, u.grade,
-                COALESCE(us.consecutive_days, 0) AS consecutive_days
-         FROM users u
+        `SELECT u.username, u.grade, COALESCE(us.consecutive_days, 0) AS consecutive_days
+         FROM users u ${join}
          LEFT JOIN user_stats us ON u.id = us.user_id
-         WHERE u.role = 'alumno' ${whereClause}
-         ORDER BY consecutive_days DESC
-         LIMIT 5`,
-        params
+         WHERE ${where}
+         ORDER BY consecutive_days DESC LIMIT 10`
       );
 
       const topAchievements = await db.all(
-        `SELECT u.username, u.grade,
-                COALESCE(us.achievements_count, 0) AS achievements_count
-         FROM users u
+        `SELECT u.username, u.grade, COALESCE(us.achievements_count, 0) AS achievements_count
+         FROM users u ${join}
          LEFT JOIN user_stats us ON u.id = us.user_id
-         WHERE u.role = 'alumno' ${whereClause}
-         ORDER BY achievements_count DESC
-         LIMIT 5`,
-        params
+         WHERE ${where}
+         ORDER BY achievements_count DESC LIMIT 10`
       );
 
       res.json({
