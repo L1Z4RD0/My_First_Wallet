@@ -110,6 +110,8 @@ import InternationalMarketGame from '../components/games/InternationalMarketGame
 import KioskGame              from '../components/games/KioskGame.vue'
 import SmartShoppingGame      from '../components/games/SmartShoppingGame.vue'
 import MoneyTetrisGame        from '../components/games/MoneyTetrisGame.vue'
+import FinancialRunnerGame    from '../components/games/FinancialRunnerGame.vue'
+import FinanceInvadersGame   from '../components/games/FinanceInvadersGame.vue'
 
 const playerStore = usePlayerStore()
 const avatarStore = useAvatarStore()
@@ -212,6 +214,26 @@ const mathGames = ref([
     bgColor: '#6c5ce7',
     icon: '🧱'
   },
+  {
+    id: 'runner-game',
+    title: 'Financial Runner',
+    englishTitle: 'Financial Runner',
+    level: 1,
+    description: 'Corre por la ciudad financiera: recoge monedas y esquiva deudas impulsivas.',
+    englishDescription: 'Run through the financial city: collect coins and dodge impulse debt!',
+    bgColor: '#00b894',
+    icon: '🏃'
+  },
+  {
+    id: 'invaders-game',
+    title: 'Finance Invaders',
+    englishTitle: 'Finance Invaders',
+    level: 3,
+    description: 'Dispara los gastos, captura los ingresos. ¡Defiende tu economía en 4 oleadas!',
+    englishDescription: 'Shoot expenses, catch income. Defend your economy across 4 waves!',
+    bgColor: '#6c5ce7',
+    icon: '🚀'
+  },
 ])
 
 const englishGames = ref([
@@ -285,6 +307,26 @@ const englishGames = ref([
     bgColor: '#a29bfe',
     icon: '🧱'
   },
+  {
+    id: 'runner-game',
+    title: 'Financial Runner (EN)',
+    englishTitle: 'Financial Runner',
+    level: 1,
+    description: 'Run through the financial city in English: collect coins, dodge debt and fines!',
+    englishDescription: 'Run through the financial city: collect coins, dodge impulse buys and debts!',
+    bgColor: '#55efc4',
+    icon: '🏃'
+  },
+  {
+    id: 'invaders-game',
+    title: 'Finance Invaders (EN)',
+    englishTitle: 'Finance Invaders',
+    level: 3,
+    description: 'Shoot expenses, catch income events! Defend your economy across 4 waves.',
+    englishDescription: 'Shoot the expenses and catch the income! Defend your economy across 4 waves.',
+    bgColor: '#a29bfe',
+    icon: '🚀'
+  },
 ])
 
 // ── COMPONENT MAP ─────────────────────────────────────────────────────────
@@ -301,6 +343,8 @@ const componentMap = {
   'kiosk-game':         KioskGame,
   'shopping-game':      SmartShoppingGame,
   'tetris-game':        MoneyTetrisGame,
+  'runner-game':        FinancialRunnerGame,
+  'invaders-game':      FinanceInvadersGame,
 }
 
 // ── STATE ─────────────────────────────────────────────────────────────────
