@@ -36,22 +36,22 @@
             <div class="roulette-wheel" :class="{ spinning: isSpinning }">
               <span>{{ isSpinning ? '🎲' : (rolledEvent ? rolledEvent.icon : '❓') }}</span>
             </div>
-            <p v-if="isSpinning" class="spin-label">Rolling today's random event...</p>
+            <p v-if="isSpinning" class="spin-label">Sorteando el evento del día...</p>
           </div>
 
           <div v-if="!isSpinning && rolledEvent" class="event-reveal" :class="'event-' + rolledEvent.type">
             <div class="event-header">
               <span class="event-big-icon">{{ rolledEvent.icon }}</span>
               <div>
-                <p class="event-label">Today's Event</p>
-                <h3 class="event-title-en">{{ rolledEvent.titleEN }}</h3>
+                <p class="event-label">Evento del Día</p>
+                <h3 class="event-title-en">{{ rolledEvent.titleES }}</h3>
               </div>
             </div>
-            <p class="event-desc-en">{{ rolledEvent.descEN }}</p>
+            <p class="event-desc-en">{{ rolledEvent.descES }}</p>
 
             <!-- Comprehension quiz -->
             <div v-if="!comprehensionAnswered" class="comp-quiz">
-              <p class="comp-question">❓ <strong>What happened today?</strong></p>
+              <p class="comp-question">❓ <strong>¿Qué pasó hoy?</strong></p>
               <div class="comp-options">
                 <button
                   v-for="(opt, i) in comprehensionOptions"
@@ -64,10 +64,10 @@
 
             <div v-else class="comp-result" :class="comprehensionCorrect ? 'comp-ok' : 'comp-miss'">
               {{ comprehensionCorrect
-                ? `✅ Correct! You understood the situation — discount: 25% off`
-                : `❌ Incorrect. Read more carefully next time.` }}
+                ? `✅ ¡Correcto! Entendiste la situación — descuento del 25% en gastos`
+                : `❌ Incorrecto. Lee el evento con más atención la próxima vez.` }}
               <strong class="event-impact">
-                Impact: {{ rolledEvent.amount > 0 ? '+' : '' }}${{ finalEventAmount }}
+                Impacto: {{ rolledEvent.amount > 0 ? '+' : '' }}${{ finalEventAmount }}
               </strong>
             </div>
           </div>
@@ -95,7 +95,7 @@
               <span>
                 {{ summaryData.eventoIcon }}
                 {{ summaryData.eventoLabelES }}
-                <small class="bk-en-hint">({{ summaryData.eventoTitleEN }})</small>
+                <small class="bk-en-hint">({{ summaryData.eventoTitleES }})</small>
               </span>
               <span :class="summaryData.eventoAmount > 0 ? 'bk-pos' : 'bk-neg'">
                 {{ summaryData.eventoAmount > 0 ? '+' : '' }}${{ summaryData.eventoAmount }}
@@ -171,31 +171,103 @@ const finalEventAmount      = ref(0)
 // ── EXPENSE TABLE ─────────────────────────────────────────────────────────
 
 const EXPENSES = [
-  { id: 'rent',      icon: '🏠', nameEN: 'Housing — daily rent installment',    nameES: 'Arriendo diario',    amount: 8 },
-  { id: 'food',      icon: '🛒', nameEN: 'Food & Groceries',                    nameES: 'Alimentos',          amount: 5 },
-  { id: 'transport', icon: '🚌', nameEN: 'Transportation — public transit pass', nameES: 'Transporte',         amount: 4 },
-  { id: 'utilities', icon: '💡', nameEN: 'Utilities — electricity & water',      nameES: 'Servicios básicos',  amount: 3 },
+  { id: 'rent',      icon: '🏠', nameEN: 'Housing — daily rent installment',    nameES: 'Arriendo diario',    amount: 20 },
+  { id: 'food',      icon: '🛒', nameEN: 'Food & Groceries',                    nameES: 'Alimentos',          amount: 15 },
+  { id: 'transport', icon: '🚌', nameEN: 'Transportation — public transit pass', nameES: 'Transporte',         amount: 10 },
+  { id: 'utilities', icon: '💡', nameEN: 'Utilities — electricity & water',      nameES: 'Servicios básicos',  amount: 5  },
 ]
 const TOTAL_FIXED = EXPENSES.reduce((s, e) => s + e.amount, 0)
 
 // ── RNG EVENT POOL ────────────────────────────────────────────────────────
 
 const eventPool = [
-  // Negative
-  { type: 'negative', icon: '🏥', titleEN: 'Medical Appointment',  descEN: 'An unexpected doctor visit was required. Health always comes first, but it comes at a cost.', amount: -35, prob: 0.12, correctAnswer: 'You had a medical expense', wrongAnswers: ['You won a health contest', 'Your insurance paid fully'] },
-  { type: 'negative', icon: '🔧', titleEN: 'Equipment Failure',    descEN: 'Your bicycle requires urgent repair before tomorrow\'s deliveries. The mechanic charges for parts and labor.', amount: -28, prob: 0.08, correctAnswer: 'Your bicycle broke down', wrongAnswers: ['You bought a new bicycle', 'Someone stole your bike'] },
-  { type: 'negative', icon: '📈', titleEN: 'Price Surge',          descEN: 'Market prices for basic goods surged today due to supply chain disruptions. Extra food expenses incurred.', amount: -12, prob: 0.10, correctAnswer: 'Food prices increased unexpectedly', wrongAnswers: ['You found a discount coupon', 'You donated food to charity'] },
-  { type: 'negative', icon: '👛', titleEN: 'Lost Wallet',          descEN: 'You misplaced your wallet on public transit. Some cash is gone — consider keeping less on you.', amount: -18, prob: 0.04, correctAnswer: 'You lost some cash', wrongAnswers: ['Someone returned your wallet with extra cash', 'Your bank increased your credit limit'] },
-  { type: 'negative', icon: '🎫', titleEN: 'Parking Fine',        descEN: 'A parking violation ticket was issued to your account. Pay within 5 business days to avoid surcharges.', amount: -22, prob: 0.06, correctAnswer: 'You received a fine', wrongAnswers: ['You won a parking lottery', 'The city refunded old fines'] },
-  { type: 'negative', icon: '📋', titleEN: 'Tax Adjustment',       descEN: 'The government issued an annual tax underpayment notice. A small amount is due immediately.', amount: -40, prob: 0.03, correctAnswer: 'You owe extra taxes', wrongAnswers: ['You received a tax refund', 'Your taxes were cancelled'] },
-  // Positive
-  { type: 'positive', icon: '💵', titleEN: 'Lucky Find',           descEN: 'You found cash on the ground near the market. It\'s your lucky day — small wins matter!', amount: +10, prob: 0.07, correctAnswer: 'You found money unexpectedly', wrongAnswers: ['You earned overtime pay', 'You won the lottery'] },
-  { type: 'positive', icon: '⏰', titleEN: 'Overtime Pay',         descEN: 'You completed an extra shift at work. The overtime wages have been credited to your account.', amount: +20, prob: 0.08, correctAnswer: 'You earned extra from working more', wrongAnswers: ['Your salary was cut', 'You received a government bonus'] },
-  { type: 'positive', icon: '🏅', titleEN: 'Performance Bonus',   descEN: 'Your employer recognized your monthly performance. A one-time bonus has been credited.', amount: +30, prob: 0.05, correctAnswer: 'You received a work bonus', wrongAnswers: ['You received a penalty at work', 'Your boss forgot to pay you'] },
-  { type: 'positive', icon: '📩', titleEN: 'Tax Rebate',           descEN: 'The government issued a tax overpayment refund. Your account has been credited accordingly.', amount: +25, prob: 0.03, correctAnswer: 'The government refunded overpaid taxes', wrongAnswers: ['You paid extra taxes by mistake', 'You donated to a government fund'] },
-  { type: 'positive', icon: '🎓', titleEN: 'Academic Scholarship', descEN: 'You were awarded an academic merit scholarship. The grant has been deposited into your account.', amount: +50, prob: 0.02, correctAnswer: 'You won a scholarship', wrongAnswers: ['You paid tuition fees', 'A scholarship was cancelled'] },
-  // Neutral
-  { type: 'neutral', icon: '📅', titleEN: 'Ordinary Day',          descEN: 'No unexpected events today. Sometimes the most valuable thing is stability.', amount: 0, prob: 0.32, correctAnswer: 'Nothing unusual happened', wrongAnswers: ['You had a major windfall', 'You suffered a big loss'] },
+  // Negativo
+  { type: 'negative', icon: '🏥',
+    titleEN: 'Medical Appointment',  titleES: 'Consulta Médica',
+    descEN:  'An unexpected doctor visit was required. Health always comes first, but it comes at a cost.',
+    descES:  'Se requirió una visita inesperada al médico. La salud es primero, pero tiene un costo.',
+    amount: -35, prob: 0.12,
+    correctAnswerES: 'Tuviste un gasto médico inesperado',
+    wrongAnswersES:  ['Ganaste un concurso de salud', 'Tu seguro cubrió todo el costo'] },
+  { type: 'negative', icon: '🔧',
+    titleEN: 'Equipment Failure',    titleES: 'Falla de Equipo',
+    descEN:  'Your bicycle requires urgent repair before tomorrow\'s deliveries. The mechanic charges for parts and labor.',
+    descES:  'Tu bicicleta necesita reparación urgente antes de las entregas de mañana. El mecánico cobra por piezas y mano de obra.',
+    amount: -28, prob: 0.08,
+    correctAnswerES: 'Tu bicicleta se averió y requirió reparación',
+    wrongAnswersES:  ['Compraste una bicicleta nueva', 'Alguien robó tu bicicleta'] },
+  { type: 'negative', icon: '📈',
+    titleEN: 'Price Surge',          titleES: 'Alza de Precios',
+    descEN:  'Market prices for basic goods surged today due to supply chain disruptions. Extra food expenses incurred.',
+    descES:  'Los precios de artículos básicos subieron hoy por problemas en la cadena de suministro. Se generaron gastos extra en alimentación.',
+    amount: -12, prob: 0.10,
+    correctAnswerES: 'Los precios de alimentos subieron inesperadamente',
+    wrongAnswersES:  ['Encontraste un cupón de descuento', 'Donaste alimentos a una organización benéfica'] },
+  { type: 'negative', icon: '👛',
+    titleEN: 'Lost Wallet',          titleES: 'Billetera Perdida',
+    descEN:  'You misplaced your wallet on public transit. Some cash is gone — consider keeping less on you.',
+    descES:  'Perdiste tu billetera en el transporte público. Algo de efectivo se fue — considera llevar menos dinero encima.',
+    amount: -18, prob: 0.04,
+    correctAnswerES: 'Perdiste algo de efectivo',
+    wrongAnswersES:  ['Alguien devolvió tu billetera con dinero extra', 'Tu banco aumentó tu línea de crédito'] },
+  { type: 'negative', icon: '🎫',
+    titleEN: 'Parking Fine',         titleES: 'Multa de Tránsito',
+    descEN:  'A parking violation ticket was issued to your account. Pay within 5 business days to avoid surcharges.',
+    descES:  'Te emitieron una multa por infracción de estacionamiento. Paga dentro de 5 días hábiles para evitar recargos.',
+    amount: -22, prob: 0.06,
+    correctAnswerES: 'Recibiste una multa por infracción',
+    wrongAnswersES:  ['Ganaste un sorteo municipal de estacionamiento', 'La municipalidad devolvió multas antiguas'] },
+  { type: 'negative', icon: '📋',
+    titleEN: 'Tax Adjustment',       titleES: 'Ajuste Tributario',
+    descEN:  'The government issued an annual tax underpayment notice. A small amount is due immediately.',
+    descES:  'El Servicio de Impuestos Internos emitió un aviso de pago insuficiente de impuestos. Se debe pagar un monto de inmediato.',
+    amount: -40, prob: 0.03,
+    correctAnswerES: 'Debes pagar impuestos adicionales al SII',
+    wrongAnswersES:  ['Recibiste una devolución de impuestos', 'El gobierno canceló todos tus impuestos'] },
+  // Positivo
+  { type: 'positive', icon: '💵',
+    titleEN: 'Lucky Find',           titleES: 'Hallazgo Afortunado',
+    descEN:  'You found cash on the ground near the market. It\'s your lucky day — small wins matter!',
+    descES:  '¡Encontraste dinero en el suelo cerca del mercado! Es tu día de suerte — los pequeños hallazgos cuentan.',
+    amount: +10, prob: 0.07,
+    correctAnswerES: 'Encontraste dinero de manera inesperada',
+    wrongAnswersES:  ['Ganaste pago por horas extra en el trabajo', 'Ganaste la lotería nacional'] },
+  { type: 'positive', icon: '⏰',
+    titleEN: 'Overtime Pay',         titleES: 'Horas Extra Pagadas',
+    descEN:  'You completed an extra shift at work. The overtime wages have been credited to your account.',
+    descES:  'Completaste un turno adicional en el trabajo. Las horas extra fueron acreditadas a tu cuenta.',
+    amount: +20, prob: 0.08,
+    correctAnswerES: 'Ganaste dinero extra por trabajar horas adicionales',
+    wrongAnswersES:  ['Tu sueldo fue reducido este mes', 'Recibiste un bono del gobierno'] },
+  { type: 'positive', icon: '🏅',
+    titleEN: 'Performance Bonus',    titleES: 'Bono por Desempeño',
+    descEN:  'Your employer recognized your monthly performance. A one-time bonus has been credited.',
+    descES:  'Tu empleador reconoció tu desempeño mensual. Se acreditó un bono único a tu cuenta.',
+    amount: +30, prob: 0.05,
+    correctAnswerES: 'Tu empleador te pagó un bono por buen desempeño',
+    wrongAnswersES:  ['Recibiste una sanción económica en el trabajo', 'Tu empleador olvidó pagarte este mes'] },
+  { type: 'positive', icon: '📩',
+    titleEN: 'Tax Rebate',           titleES: 'Devolución de Impuestos',
+    descEN:  'The government issued a tax overpayment refund. Your account has been credited accordingly.',
+    descES:  'El SII emitió un reembolso por pago en exceso de impuestos. Tu cuenta fue acreditada con el monto correspondiente.',
+    amount: +25, prob: 0.03,
+    correctAnswerES: 'El gobierno te devolvió impuestos pagados de más',
+    wrongAnswersES:  ['Pagaste impuestos adicionales por error propio', 'Donaste dinero a un fondo del gobierno'] },
+  { type: 'positive', icon: '🎓',
+    titleEN: 'Academic Scholarship', titleES: 'Beca Académica',
+    descEN:  'You were awarded an academic merit scholarship. The grant has been deposited into your account.',
+    descES:  '¡Fuiste premiado con una beca de mérito académico! El monto fue depositado directamente en tu cuenta.',
+    amount: +50, prob: 0.02,
+    correctAnswerES: 'Ganaste una beca por tu rendimiento académico',
+    wrongAnswersES:  ['Pagaste aranceles universitarios este mes', 'Una beca que tenías fue cancelada'] },
+  // Neutro
+  { type: 'neutral', icon: '📅',
+    titleEN: 'Ordinary Day',         titleES: 'Día Sin Novedades',
+    descEN:  'No unexpected events today. Sometimes the most valuable thing is stability.',
+    descES:  'Sin eventos inesperados hoy. A veces lo más valioso es la estabilidad y la constancia.',
+    amount: 0, prob: 0.32,
+    correctAnswerES: 'No ocurrió nada inusual hoy',
+    wrongAnswersES:  ['Recibiste una ganancia enorme inesperada', 'Sufriste una pérdida económica importante'] },
 ]
 
 const rollEvent = () => {
@@ -212,13 +284,13 @@ const rollEvent = () => {
 
 const comprehensionOptions = computed(() => {
   if (!rolledEvent.value) return []
-  const correct = rolledEvent.value.correctAnswer
-  const wrong   = rolledEvent.value.wrongAnswers
+  const correct = rolledEvent.value.correctAnswerES
+  const wrong   = rolledEvent.value.wrongAnswersES
   return [correct, ...wrong].sort(() => 0.5 - Math.random())
 })
 
 const answerComprehension = (i) => {
-  comprehensionCorrect.value  = comprehensionOptions.value[i] === rolledEvent.value.correctAnswer
+  comprehensionCorrect.value  = comprehensionOptions.value[i] === rolledEvent.value.correctAnswerES
   comprehensionAnswered.value = true
   const discount = comprehensionCorrect.value && rolledEvent.value.amount < 0 ? 0.75 : 1
   finalEventAmount.value = Math.round(rolledEvent.value.amount * discount)
@@ -266,7 +338,7 @@ const confirmDay = () => {
     gastosF:         TOTAL_FIXED,
     eventoAmount:    finalEventAmount.value,
     eventoIcon:      rolledEvent.value?.icon ?? '📅',
-    eventoTitleEN:   rolledEvent.value?.titleEN ?? '',
+    eventoTitleES:   rolledEvent.value?.titleES ?? '',
     eventoLabelES:   eventLabelES.value,
     cambioNeto:      -(TOTAL_FIXED) + (finalEventAmount.value ?? 0),
   }

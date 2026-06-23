@@ -109,6 +109,7 @@ import SnowballGame            from '../components/games/SnowballGame.vue'
 import InternationalMarketGame from '../components/games/InternationalMarketGame.vue'
 import KioskGame              from '../components/games/KioskGame.vue'
 import SmartShoppingGame      from '../components/games/SmartShoppingGame.vue'
+import MoneyTetrisGame        from '../components/games/MoneyTetrisGame.vue'
 
 const playerStore = usePlayerStore()
 const avatarStore = useAvatarStore()
@@ -201,6 +202,16 @@ const mathGames = ref([
     bgColor: '#0984e3',
     icon: '🌎'
   },
+  {
+    id: 'tetris-game',
+    title: 'Money Tetris',
+    englishTitle: 'Money Tetris',
+    level: 2,
+    description: 'Forma líneas con combinaciones financieras: Ingreso + Ahorro = ¡salud financiera!',
+    englishDescription: 'Build lines with financial combos: Income + Savings = financial health!',
+    bgColor: '#6c5ce7',
+    icon: '🧱'
+  },
 ])
 
 const englishGames = ref([
@@ -264,6 +275,16 @@ const englishGames = ref([
     bgColor: '#6c5ce7',
     icon: '🌎'
   },
+  {
+    id: 'tetris-game',
+    title: 'Money Tetris (EN)',
+    englishTitle: 'Money Tetris',
+    level: 2,
+    description: 'Build financial lines: Income + Savings = healthy finances! Learn through gameplay.',
+    englishDescription: 'Build financial lines: Income + Savings = healthy finances! Learn through gameplay.',
+    bgColor: '#a29bfe',
+    icon: '🧱'
+  },
 ])
 
 // ── COMPONENT MAP ─────────────────────────────────────────────────────────
@@ -279,6 +300,7 @@ const componentMap = {
   'market-game':      InternationalMarketGame,
   'kiosk-game':         KioskGame,
   'shopping-game':      SmartShoppingGame,
+  'tetris-game':        MoneyTetrisGame,
 }
 
 // ── STATE ─────────────────────────────────────────────────────────────────

@@ -134,7 +134,7 @@ export const usePlayerStore = defineStore('player', {
     },
 
     terminarDia() {
-      const GASTOS_DIARIOS = 20
+      const GASTOS_DIARIOS = 50
 
       if (this.dineroDisponible >= GASTOS_DIARIOS) {
         this.dineroDisponible -= GASTOS_DIARIOS
