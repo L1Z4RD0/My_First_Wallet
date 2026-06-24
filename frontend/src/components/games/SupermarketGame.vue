@@ -25,6 +25,10 @@
         </div>
       </div>
 
+      <div class="joker-hint">
+        💡 {{ isEN ? 'You have 1 wildcard — it reveals the best option and selects it for you (single use).' : 'Tienes 1 comodín — revela la mejor opción y la selecciona por ti (un solo uso).' }}
+      </div>
+
       <div class="variant-badge" v-if="variant > 1">
         <span>⚡ Día {{ variant }} — {{ variantLabel }}</span>
       </div>
@@ -77,8 +81,15 @@
       </div>
 
       <div class="actions-row">
-        <button class="btn-calc" @click="showCalc = !showCalc">
-          {{ showCalc ? '🙈 ' : '🧮 ' }}{{ isEN ? (showCalc ? 'Hide calc' : 'Price/unit') : (showCalc ? 'Ocultar cálculo' : 'Ver $/unidad') }}
+        <button
+          class="btn-joker"
+          :class="{ used: jokerUsed }"
+          :disabled="jokerUsed"
+          @click="useJoker"
+        >
+          {{ jokerUsed
+              ? (isEN ? '💡 Used ✓' : '💡 Usado ✓')
+              : (isEN ? '💡 Wildcard' : '💡 Comodín') }}
         </button>
         <button class="btn-primary" :disabled="pick === null" @click="confirmPick">
           {{ isEN ? '✓ Add to Cart' : '✓ Agregar' }}
@@ -109,7 +120,7 @@
       </div>
 
       <div class="reward-box">
-        <p>{{ isEN ? 'Reward' : 'Recompensa' }}: <strong class="coins">+${{ rewardCoins }}</strong> 🪙</p>
+        <p>{{ isEN ? 'Reward' : 'Recompensa' }}: <strong class="coins">+{{ rewardCoins }} 🪙</strong></p>
       </div>
 
       <button class="btn-primary" @click="finish">
@@ -131,12 +142,13 @@ const player = usePlayerStore()
 const isEN    = computed(() => props.language === 'en')
 const variant = computed(() => Math.min(player.diaActual, 4))
 
-const phase    = ref('intro')
-const itemIdx  = ref(0)
-const pick     = ref(null)
-const showCalc = ref(false)
-const spent    = ref(0)
-const choices  = ref([])
+const phase      = ref('intro')
+const itemIdx    = ref(0)
+const pick       = ref(null)
+const showCalc   = ref(false)
+const spent      = ref(0)
+const choices    = ref([])
+const jokerUsed  = ref(false)   // one-time wildcard per game
 
 // ── ITEM POOLS ─────────────────────────────────────────────────────────────
 
@@ -262,8 +274,9 @@ const allItemsEN = [
 // ── VARIANT ITEM SELECTION ─────────────────────────────────────────────────
 
 const budget = computed(() => {
-  const base = { 1: 1500, 2: 1800, 3: 2200, 4: 2800 }
-  return base[variant.value] ?? 2200
+  // Budgets sized so optimal choices always fit (optimal totals ≈ $1750/3items, $2170/4, $2550/5)
+  const base = { 1: 1900, 2: 2400, 3: 2900, 4: 3400 }
+  return base[variant.value] ?? 2900
 })
 
 const shuffledPool = ref([])
@@ -301,7 +314,19 @@ const startShopping = () => {
   showCalc.value  = false
   spent.value     = 0
   choices.value   = []
+  jokerUsed.value = false
   phase.value     = 'shopping'
+}
+
+const useJoker = () => {
+  if (jokerUsed.value) return
+  jokerUsed.value = true
+  showCalc.value  = true
+  // Auto-select the optimal option so player sees it chosen
+  const item    = currentItem.value
+  const bestIdx = item.options.reduce((bi, o, i) =>
+    (o.price / o.amount) < (item.options[bi].price / item.options[bi].amount) ? i : bi, 0)
+  pick.value = bestIdx
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────
@@ -453,9 +478,24 @@ h2 { text-align: center; color: var(--primary-color); margin-bottom: 1.5rem; }
 
 .opt-note { font-size: 0.78rem; color: #e17055; margin-top: 0.3rem; font-weight: 700; }
 
+.joker-hint { background: #fff8e1; border: 1.5px solid #f1c40f; border-radius: 12px; padding: 0.7rem 1rem; font-size: 0.87rem; font-weight: 700; color: #7d5a00; text-align: center; margin-bottom: 0.5rem; }
+
 .actions-row { display: flex; gap: 0.75rem; margin-top: 0.75rem; }
-.btn-calc { background: white; border: 2px solid #dfe6e9; color: var(--text-dark); padding: 0.6rem 1.2rem; border-radius: 20px; font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-.btn-calc:hover { background: #f1f2f6; }
+
+.btn-joker {
+  background: linear-gradient(135deg, #f1c40f, #e67e22);
+  color: white; border: none; padding: 0.65rem 1.3rem;
+  border-radius: 20px; font-size: 0.9rem; font-weight: 800;
+  cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  box-shadow: 0 3px 10px rgba(241,196,15,0.45);
+  letter-spacing: 0.3px;
+}
+.btn-joker:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(241,196,15,0.55); }
+.btn-joker.used, .btn-joker:disabled {
+  background: linear-gradient(135deg, #b2bec3, #95a5a6);
+  box-shadow: none; cursor: not-allowed; opacity: 0.75;
+  transform: none;
+}
 .btn-primary { flex: 1; background: linear-gradient(135deg, var(--primary-color), #a29bfe); color: white; border: none; padding: 0.85rem 1.5rem; border-radius: 50px; font-family: 'Fredoka', sans-serif; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
 .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none !important; }
 .btn-primary:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(91,95,251,0.35); }

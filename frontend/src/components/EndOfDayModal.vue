@@ -17,11 +17,11 @@
               <div class="exp-detail">
                 <span class="exp-name-en">{{ exp.nameES }}</span>
               </div>
-              <span class="exp-amount">−${{ exp.amount }}</span>
+              <span class="exp-amount">−🪙 {{ exp.amount }}</span>
             </div>
             <div class="exp-total-row">
               <span>Total gastos fijos</span>
-              <span class="total-amount">−${{ TOTAL_FIXED }}</span>
+              <span class="total-amount">−🪙 {{ TOTAL_FIXED }}</span>
             </div>
           </div>
 
@@ -67,7 +67,7 @@
                 ? `✅ ¡Correcto! Entendiste la situación — descuento del 25% en gastos`
                 : `❌ Incorrecto. Lee el evento con más atención la próxima vez.` }}
               <strong class="event-impact">
-                Impacto: {{ rolledEvent.amount > 0 ? '+' : '' }}${{ finalEventAmount }}
+                Impacto: {{ rolledEvent.amount > 0 ? '+' : '' }}🪙 {{ finalEventAmount }}
               </strong>
             </div>
           </div>
@@ -89,7 +89,7 @@
           <div class="breakdown-box">
             <div class="bk-row">
               <span>🏠 Gastos fijos del día</span>
-              <span class="bk-neg">−${{ summaryData.gastosF }}</span>
+              <span class="bk-neg">−🪙 {{ summaryData.gastosF }}</span>
             </div>
             <div class="bk-row" v-if="summaryData.eventoAmount !== 0">
               <span>
@@ -98,7 +98,7 @@
                 <small class="bk-en-hint">({{ summaryData.eventoTitleES }})</small>
               </span>
               <span :class="summaryData.eventoAmount > 0 ? 'bk-pos' : 'bk-neg'">
-                {{ summaryData.eventoAmount > 0 ? '+' : '' }}${{ summaryData.eventoAmount }}
+                {{ summaryData.eventoAmount > 0 ? '+' : '' }}🪙 {{ summaryData.eventoAmount }}
               </span>
             </div>
             <div class="bk-row" v-else>
@@ -108,7 +108,7 @@
             <div class="bk-total">
               <span>Cambio neto del día</span>
               <span :class="summaryData.cambioNeto <= 0 ? 'bk-neg' : 'bk-pos'">
-                {{ summaryData.cambioNeto > 0 ? '+' : '' }}${{ summaryData.cambioNeto }}
+                {{ summaryData.cambioNeto > 0 ? '+' : '' }}🪙 {{ summaryData.cambioNeto }}
               </span>
             </div>
           </div>
@@ -125,7 +125,7 @@
               <span>💰</span>
               <div>
                 <p class="sc-label">Disponible</p>
-                <p class="sc-val">${{ summaryData.dineroDisponible }}</p>
+                <p class="sc-val">🪙 {{ summaryData.dineroDisponible }}</p>
               </div>
             </div>
             <div class="sum-card">

@@ -7,9 +7,9 @@
       
       <div class="insurance-box">
         <h3>🛡️ Seguro Contra Accidentes</h3>
-        <p>¿Quieres pagar <strong>$5</strong> por un seguro? Si te toca algo muy malo, el seguro cubrirá el costo.</p>
+        <p>¿Quieres pagar <strong>🪙 5</strong> por un seguro? Si te toca algo muy malo, el seguro cubrirá el costo.</p>
         <div class="insurance-buttons">
-          <button class="btn-insurance yes" @click="buyInsurance(true)" :disabled="playerStore.dineroDisponible < 5">Comprar Seguro ($5)</button>
+          <button class="btn-insurance yes" @click="buyInsurance(true)" :disabled="playerStore.dineroDisponible < 5">Comprar Seguro (🪙 5)</button>
           <button class="btn-insurance no" @click="buyInsurance(false)">No, me arriesgaré</button>
         </div>
       </div>
@@ -79,11 +79,11 @@ const spinRoulette = () => {
     const ev = events[randomIdx]
     
     let realAmount = ev.amount
-    let impactLabel = ev.amount > 0 ? `+${ev.amount}` : `${ev.amount}`
+    let impactLabel = ev.amount > 0 ? `+🪙 ${ev.amount}` : `🪙 ${ev.amount}`
     
     if (ev.type === 'negative' && hasInsurance.value) {
       realAmount = 0
-      impactLabel = '$0 (Cubierto)'
+      impactLabel = '🪙 0 (Cubierto)'
     }
 
     eventResult.value = { ...ev, realAmount, impactLabel }
@@ -109,7 +109,7 @@ const finishGame = () => {
       let faltante = absLoss - playerStore.dineroDisponible
       playerStore.dineroDisponible = 0
       playerStore.deuda += faltante
-      msg += ` ¡Tus ahorros no fueron suficientes y quedaste con una deuda de $${faltante}!`
+      msg += ` ¡Tus ahorros no fueron suficientes y quedaste con una deuda de 🪙 ${faltante}!`
     }
     playerStore.save()
   }

@@ -391,15 +391,8 @@ function draw() {
     ctx.fillText(ITEM_DEFS[it.type].emoji, it.x, it.y)
   }
 
-  // Character shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.15)'
-  ctx.beginPath()
-  ctx.ellipse(CHAR_X, g.charY + g.bounceY + 18, 13, 5, 0, 0, Math.PI * 2)
-  ctx.fill()
-
-  // Character emoji
-  ctx.font = '30px serif'
-  ctx.fillText('🏃', CHAR_X, g.charY + g.bounceY)
+  // Character (custom drawn for guaranteed visibility)
+  drawCharacter(ctx, CHAR_X, g.charY + g.bounceY)
 
   // Hit flash (red tint)
   if (g.hitFlash > 0) {
@@ -411,6 +404,117 @@ function draw() {
     ctx.fillStyle = `rgba(255,215,0,${g.gainFlash * 0.22})`
     ctx.fillRect(0, 0, CW, CH)
   }
+}
+
+// ── CHARACTER DRAWING ──────────────────────────────────────────────────────
+function drawCharacter(ctx, x, y) {
+  const sw = Math.sin(g.frame * 0.22) * 13   // leg swing amplitude
+
+  ctx.save()
+  ctx.lineCap = 'round'
+
+  // Ground shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.25)'
+  ctx.beginPath()
+  ctx.ellipse(x + 1, y + 22, 17, 5, 0, 0, Math.PI * 2)
+  ctx.fill()
+
+  // ── Back leg (darker) ──────────────────────────────────────────────────
+  ctx.lineWidth = 7
+  ctx.strokeStyle = '#1a252f'
+  ctx.beginPath()
+  ctx.moveTo(x, y + 9)
+  ctx.lineTo(x - sw, y + 22)
+  ctx.stroke()
+  // Back shoe
+  ctx.fillStyle = '#922b21'
+  ctx.beginPath()
+  ctx.ellipse(x - sw, y + 25, 9, 4, 0, 0, Math.PI * 2)
+  ctx.fill()
+
+  // ── Front leg (lighter) ────────────────────────────────────────────────
+  ctx.strokeStyle = '#2C3E50'
+  ctx.beginPath()
+  ctx.moveTo(x + 2, y + 9)
+  ctx.lineTo(x + sw + 2, y + 22)
+  ctx.stroke()
+  // Front shoe
+  ctx.fillStyle = '#E74C3C'
+  ctx.beginPath()
+  ctx.ellipse(x + sw + 3, y + 25, 9, 4, 0, 0, Math.PI * 2)
+  ctx.fill()
+
+  // ── Body – bright green shirt ──────────────────────────────────────────
+  ctx.fillStyle = '#27AE60'
+  ctx.strokeStyle = '#1a7a43'
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.moveTo(x - 12, y + 9)
+  ctx.lineTo(x - 13, y - 9)
+  ctx.bezierCurveTo(x - 13, y - 14, x + 14, y - 14, x + 13, y - 9)
+  ctx.lineTo(x + 12, y + 9)
+  ctx.closePath()
+  ctx.fill()
+  ctx.stroke()
+
+  // $ on shirt
+  ctx.fillStyle = 'rgba(255,255,255,0.88)'
+  ctx.font = 'bold 11px sans-serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText('$', x + 0.5, y - 0.5)
+
+  // ── Back arm ───────────────────────────────────────────────────────────
+  ctx.lineWidth = 5
+  ctx.strokeStyle = '#FDCB6E'
+  ctx.beginPath()
+  ctx.moveTo(x - 11, y - 4)
+  ctx.lineTo(x - 21 + sw * 0.55, y + 7)
+  ctx.stroke()
+
+  // ── Front arm ──────────────────────────────────────────────────────────
+  ctx.beginPath()
+  ctx.moveTo(x + 11, y - 4)
+  ctx.lineTo(x + 21 - sw * 0.55, y + 7)
+  ctx.stroke()
+
+  // ── Head outline (contrast ring) ───────────────────────────────────────
+  ctx.fillStyle = '#1a252f'
+  ctx.beginPath()
+  ctx.arc(x + 1, y - 22, 14, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Head (skin)
+  ctx.fillStyle = '#FDCB6E'
+  ctx.beginPath()
+  ctx.arc(x + 1, y - 22, 12, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Hair
+  ctx.fillStyle = '#2C3E50'
+  ctx.beginPath()
+  ctx.arc(x + 1, y - 29, 10, Math.PI + 0.4, -0.12)
+  ctx.fill()
+
+  // Eye white
+  ctx.fillStyle = 'white'
+  ctx.beginPath()
+  ctx.arc(x + 6, y - 22, 3, 0, Math.PI * 2)
+  ctx.fill()
+  // Pupil
+  ctx.fillStyle = '#2C3E50'
+  ctx.beginPath()
+  ctx.arc(x + 7, y - 22, 1.8, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Smile
+  ctx.strokeStyle = '#c0392b'
+  ctx.lineWidth = 1.8
+  ctx.beginPath()
+  ctx.arc(x + 4, y - 18, 4, 0.2, Math.PI - 0.2)
+  ctx.stroke()
+
+  ctx.restore()
 }
 
 // ── CONTROLS ───────────────────────────────────────────────────────────────

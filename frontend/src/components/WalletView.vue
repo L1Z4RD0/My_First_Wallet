@@ -3,22 +3,22 @@
     <div class="summary-cards">
       <div class="balance-card total-patrimony">
         <h2>Patrimonio Total</h2>
-        <div class="balance-amount">${{ playerStore.patrimonioTotal }}</div>
+        <div class="balance-amount">🪙 {{ playerStore.patrimonioTotal }}</div>
         <p class="subtitle">Todo lo que tienes</p>
       </div>
       <div class="balance-card available">
         <h2>Dinero Disponible</h2>
-        <div class="balance-amount">${{ playerStore.dineroDisponible }}</div>
+        <div class="balance-amount">🪙 {{ playerStore.dineroDisponible }}</div>
         <p class="subtitle">Para gastar o invertir</p>
       </div>
       <div class="balance-card saved">
         <h2>Ahorrado (Banco)</h2>
-        <div class="balance-amount">${{ playerStore.dineroAhorrado }}</div>
+        <div class="balance-amount">🪙 {{ playerStore.dineroAhorrado }}</div>
         <p class="interest-rate">+1% de interés al terminar el día</p>
       </div>
       <div v-if="playerStore.enDeuda" class="balance-card debt">
         <h2>Deuda Activa</h2>
-        <div class="balance-amount">-${{ playerStore.deuda }}</div>
+        <div class="balance-amount">−🪙 {{ playerStore.deuda }}</div>
         <p class="penalty">¡Reduce tu energía máxima a 3!</p>
       </div>
     </div>
@@ -26,7 +26,7 @@
     <div class="actions-section">
       <div class="action-card bank-action">
         <h3>🏦 Banco Nacional</h3>
-        <p>Guarda tu dinero seguro y gana intereses. Máximo interés generado hasta $200 ahorrados.</p>
+        <p>Guarda tu dinero seguro y gana intereses. Máximo interés generado hasta 🪙 200 ahorrados.</p>
         <p v-if="playerStore.enDeuda" class="error-text">No puedes ahorrar mientras tengas deuda.</p>
         
         <div class="input-group">
@@ -65,8 +65,8 @@
         <tbody>
           <tr v-for="h in [...playerStore.historial].reverse()" :key="h.dia">
             <td>Día {{ h.dia }}</td>
-            <td><strong>${{ h.dineroFinal }}</strong></td>
-            <td>-${{ h.gastos }}</td>
+            <td><strong>🪙 {{ h.dineroFinal }}</strong></td>
+            <td>−🪙 {{ h.gastos }}</td>
             <td :class="{'text-danger': h.entroEnDeuda, 'text-success': !h.entroEnDeuda}">
               {{ h.entroEnDeuda ? 'Sí' : 'No' }}
             </td>
@@ -89,7 +89,7 @@ const debtAmount = ref(0)
 
 const depositar = () => {
   if (playerStore.depositarAhorro(bankAmount.value)) {
-    showNotification('success', `Depositaste $${bankAmount.value} en el banco.`)
+    showNotification('success', `Depositaste 🪙 ${bankAmount.value} en el banco.`)
     bankAmount.value = 0
   } else {
     showNotification('error', 'No tienes suficiente dinero o estás en deuda.')
@@ -98,7 +98,7 @@ const depositar = () => {
 
 const retirar = () => {
   if (playerStore.retirarAhorro(bankAmount.value)) {
-    showNotification('success', `Retiraste $${bankAmount.value} del banco.`)
+    showNotification('success', `Retiraste 🪙 ${bankAmount.value} del banco.`)
     bankAmount.value = 0
   } else {
     showNotification('warning', 'No tienes suficientes ahorros.')
@@ -107,7 +107,7 @@ const retirar = () => {
 
 const pagarDeuda = () => {
   if (playerStore.pagarDeuda(debtAmount.value)) {
-    showNotification('success', `Pagaste $${debtAmount.value} de tu deuda.`)
+    showNotification('success', `Pagaste 🪙 ${debtAmount.value} de tu deuda.`)
     debtAmount.value = 0
   } else {
     showNotification('error', 'No tienes suficiente dinero para ese pago.')

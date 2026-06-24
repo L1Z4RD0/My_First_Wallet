@@ -136,7 +136,7 @@
       </div>
 
       <div class="reward-box">
-        <p>{{ isEN ? 'Reward:' : 'Recompensa:' }} <strong class="coins">+${{ rewardCoins }}</strong> 🪙</p>
+        <p>{{ isEN ? 'Reward:' : 'Recompensa:' }} <strong class="coins">+{{ rewardCoins }} 🪙</strong></p>
       </div>
 
       <button class="btn-primary" @click="finish">{{ isEN ? 'Finish' : 'Terminar' }}</button>

@@ -297,7 +297,7 @@
       </div>
 
       <div class="reward-box">
-        <p>{{ t('reward') }}: <strong class="coins">+${{ rewardCoins }}</strong> 🪙</p>
+        <p>{{ t('reward') }}: <strong class="coins">+{{ rewardCoins }} 🪙</strong></p>
       </div>
 
       <button class="btn-primary" @click="finish">{{ t('finish') }}</button>

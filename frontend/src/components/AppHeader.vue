@@ -32,7 +32,7 @@
         <span class="wallet-icon">💰</span>
         <div class="wallet-info">
           <span class="wallet-label">Disponible</span>
-          <span class="wallet-balance">${{ playerStore.dineroDisponible }}</span>
+          <span class="wallet-balance">🪙 {{ playerStore.dineroDisponible }}</span>
         </div>
       </div>
       <button class="logout-btn" @click="logout" title="Cerrar sesión">🚪</button>
@@ -70,7 +70,7 @@ const openEndOfDay = () => {
 
 const onDayEnded = () => {
   if (playerStore.enDeuda) {
-    showNotification('error', `¡Cuidado! Entraste en deuda por $${playerStore.deuda}. Mañana tendrás menos energía.`)
+    showNotification('error', `¡Cuidado! Entraste en deuda por 🪙 ${playerStore.deuda}. Mañana tendrás menos energía.`)
   } else {
     showNotification('success', `¡Día ${playerStore.diaActual - 1} completado! Bienvenido al día ${playerStore.diaActual}.`)
   }

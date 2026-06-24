@@ -35,6 +35,7 @@
         <span class="fi-pu-label">{{ t('powerups') }}</span>
       </div>
 
+      <div class="fi-ammo-info">{{ t('ammoInfo') }}</div>
       <div class="fi-ctrl-hint">{{ t('ctrlHint') }}</div>
 
       <div class="fi-goal-row">
@@ -53,7 +54,13 @@
         <div class="hud-bal" :class="{'hud-pos': balFlash > 0, 'hud-neg': balFlash === -1}">
           💰 ${{ dBal }}
         </div>
-        <div class="hud-wave">🌊 {{ t('wave') }} {{ dWave }}/4</div>
+        <div class="hud-ammo" :class="{'ammo-low': dAmmo <= 3, 'ammo-empty': dAmmo === 0}">
+          🔫 {{ dAmmo }}/{{ MAX_AMMO }}
+        </div>
+        <div class="hud-lives">
+          <span v-for="i in START_LIVES" :key="i">{{ i <= dLives ? '❤️' : '🖤' }}</span>
+        </div>
+        <div class="hud-wave">🌊 {{ dWave }}/4</div>
         <div class="hud-score">⭐ {{ dScore }}</div>
         <div v-if="dPu" class="hud-pu">{{ dPu }}</div>
       </div>
@@ -93,9 +100,10 @@
         <div class="r-stat"><span>⭐ {{ t('score') }}</span><strong>{{ fScore }}</strong></div>
         <div class="r-stat"><span>💥 {{ t('destroyed') }}</span><strong>{{ fKills }}</strong></div>
         <div class="r-stat"><span>🎁 {{ t('caught') }}</span><strong>{{ fCaught }}</strong></div>
+        <div class="r-stat"><span>❤️ Vidas</span><strong>{{ dLives }}/{{ START_LIVES }}</strong></div>
         <div class="r-stat" :class="won ? 'r-pos' : 'r-neg'">
           <span>🎁 {{ t('reward') }}</span>
-          <strong>{{ won ? '+10' : (penaltyOk ? '-5' : '$0') }}</strong>
+          <strong>{{ won ? '+10 🪙' : (penaltyOk ? '-5 🪙' : '🪙 0') }}</strong>
         </div>
       </div>
 
@@ -133,7 +141,8 @@ const TEXTS = {
     shield:'Fondo de Emergencia', slow:'Educación Financiera',
     multi:'Ingreso Extra', burst:'Optimización de Gastos',
     powerups: '← Power-ups disponibles',
-    ctrlHint: '⬅ ➡ para mover • 🔫 para disparar • ¡Captura los verdes!',
+    ctrlHint: '⬅ ➡ mover • 🔫 disparar (munición limitada) • ¡Captura los verdes!',
+    ammoInfo: '🔫 Destruir gasto → recupera munición   ❤️ Gasto que pasa → −1 vida',
     goal:'Meta de ahorro', energy:'energía',
     noEnergy: 'Sin energía. ¡Termina el día para recuperarla!',
     play:'¡Defender!', wave:'Oleada', balance:'Saldo final',
@@ -151,6 +160,7 @@ const TEXTS = {
       n2:'💸 Las compras impulsivas son el mayor enemigo del ahorro.',
       n3:'📄 Las multas son gastos totalmente evitables.',
       n4:'📺 Las suscripciones que no usas drenan tu saldo mes a mes.',
+      ammoLow:'⚠️ ¡Munición baja! Destruye gastos para recuperar balas.',
     }
   },
   en: {
@@ -168,7 +178,8 @@ const TEXTS = {
     shield:'Emergency Fund', slow:'Financial Education',
     multi:'Extra Income', burst:'Spending Optimizer',
     powerups: '← Available power-ups',
-    ctrlHint: '⬅ ➡ to move • 🔫 to shoot • Catch the green ones!',
+    ctrlHint: '⬅ ➡ to move • 🔫 shoot (limited ammo) • Catch the green ones!',
+    ammoInfo: '🔫 Destroy expense → refill ammo   ❤️ Expense passes → −1 life',
     goal:'Savings goal', energy:'energy',
     noEnergy: 'No energy. Finish the day to recover it!',
     play:'Defend!', wave:'Wave', balance:'Final balance',
@@ -186,6 +197,7 @@ const TEXTS = {
       n2:'💸 Impulse purchases are the biggest enemy of savings.',
       n3:'📄 Fines are completely avoidable expenses.',
       n4:'📺 Unused subscriptions drain your balance month by month.',
+      ammoLow:'⚠️ Low ammo! Destroy expenses to refill bullets.',
     }
   }
 }
@@ -201,8 +213,11 @@ const SHIP_MIN   = 28, SHIP_MAX = 452
 const PLAYER_SPD = 4
 const BULLET_SPD = 7
 const MAX_BULLETS = 8
-const SHOOT_CD   = 18   // frames between shots (normal)
+const SHOOT_CD      = 18   // frames between shots (normal)
 const SHOOT_CD_BURST = 9
+const MAX_AMMO      = 12   // bullets player can hold
+const AMMO_RESTORE  = 3    // bullets restored per negative enemy killed
+const START_LIVES   = 3    // lives before game over
 
 const ENEMY_DEFS = {
   income:  { emoji:'💰', pos:true,  reward:+20, label:'income'  },
@@ -275,6 +290,8 @@ const fBal       = ref(0)
 const fScore     = ref(0)
 const fKills     = ref(0)
 const fCaught    = ref(0)
+const dAmmo      = ref(MAX_AMMO)
+const dLives     = ref(START_LIVES)
 const cvs        = ref(null)
 
 // Control state (plain vars for performance)
@@ -312,6 +329,8 @@ function mkG() {
     puCD:      2400,  // power-up spawn cooldown (frames)
     hitFlash:  0,
     gainFlash: 0,
+    ammo:      MAX_AMMO,
+    lives:     START_LIVES,
     powerups: { shield:false, slow:false, multi:false, burst:false, slowTimer:0, multiTimer:0, burstTimer:0 },
   }
 }
@@ -352,7 +371,8 @@ function update(dt) {
   // Shooting
   g.shootCD = Math.max(0, g.shootCD - dt)
   const cd = pu.burst ? SHOOT_CD_BURST : SHOOT_CD
-  if (mshoot && g.shootCD <= 0 && g.bullets.length < MAX_BULLETS) {
+  if (mshoot && g.shootCD <= 0 && g.bullets.length < MAX_BULLETS && g.ammo > 0) {
+    g.ammo--
     g.bullets.push({ x: g.playerX, y: PLAYER_Y - 20 })
     if (pu.burst) {
       g.bullets.push({ x: g.playerX - 10, y: PLAYER_Y - 14 })
@@ -360,6 +380,8 @@ function update(dt) {
     }
     g.shootCD = cd
   }
+  // Low ammo warning (every 3 seconds)
+  if (g.ammo <= 3 && g.frame % 180 === 0) showEduMsg(false, 'ammoLow')
 
   // Bullets
   for (const b of g.bullets) b.y -= BULLET_SPD * dt
@@ -394,11 +416,13 @@ function update(dt) {
           g.enemies.splice(ei, 1)
           showEduMsg(false, 'p4')
         } else {
-          // Shot a negative enemy (good!)
+          // Shot a negative enemy — restore ammo as reward
           g.score += e.def.pts
           g.kills++
           g.gainFlash = 0.7
+          g.ammo = Math.min(MAX_AMMO, g.ammo + AMMO_RESTORE)
           pushFloat(`+${e.def.pts}pts`, e.x, e.y, '#ffd700')
+          pushFloat(`🔫+${AMMO_RESTORE}`, e.x, e.y + 20, '#a29bfe')
           g.enemies.splice(ei, 1)
         }
         break
@@ -429,16 +453,21 @@ function update(dt) {
       }
       g.enemies.splice(ei, 1)
     } else {
-      // Negative hits player
+      // Negative hits player — lose a life + partial pts (teaches ammo management)
+      const loss    = e.penalty || e.def.penalty
+      const passPts = Math.max(1, Math.round((e.def.pts || 5) * 0.35))
+      g.score += passPts
       if (pu.shield) {
         pu.shield = false
         dPu.value = ''
-        pushFloat('🛡️ Bloqueado', g.playerX, PLAYER_Y - 25, '#74b9ff')
+        pushFloat('🛡️ Bloqueado', g.playerX, PLAYER_Y - 30, '#74b9ff')
+        pushFloat(`+${passPts}pts`, g.playerX, PLAYER_Y - 14, '#ffd700')
       } else {
-        const loss = e.penalty || e.def.penalty
         g.balance -= loss
+        g.lives = Math.max(0, g.lives - 1)
         g.hitFlash = 1
-        pushFloat(`-$${loss}`, g.playerX, PLAYER_Y - 25, '#d63031')
+        pushFloat(`-$${loss}`, g.playerX, PLAYER_Y - 30, '#d63031')
+        pushFloat(`-❤️ +${passPts}pts`, g.playerX, PLAYER_Y - 14, '#e17055')
         showEduMsg(false)
       }
       g.enemies.splice(ei, 1)
@@ -481,10 +510,12 @@ function update(dt) {
   if (g.frame % 4 === 0) {
     dBal.value   = Math.max(0, Math.floor(g.balance))
     dScore.value = g.score
+    dAmmo.value  = g.ammo
+    dLives.value = g.lives
   }
 
   // Win / lose check
-  if (g.balance <= 0) stopGame(false)
+  if (g.balance <= 0 || g.lives <= 0) stopGame(false)
   else if (g.balance >= WIN_BAL || elapsed >= GAME_SECS) stopGame(true)
 }
 
@@ -719,6 +750,7 @@ function startGame() {
   g = mkG()
   g.running = true
   dBal.value = START_BAL; dWave.value = 1; dScore.value = 0; dPu.value = ''
+  dAmmo.value = MAX_AMMO; dLives.value = START_LIVES
   eduMsg.value = ''; waveMsg.value = ''
   mleft = false; mright = false; mshoot = false
   phase.value  = 'playing'
@@ -811,6 +843,7 @@ onUnmounted(() => {
 .fi-pu-badge { font-size: 1.6rem; }
 .fi-pu-label { font-size: 0.8rem; color: #5b5bf6; font-weight: 700; }
 
+.fi-ammo-info { background: #1a1a2e; color: #a29bfe; padding: 0.55rem 1rem; border-radius: 10px; font-size: 0.78rem; font-weight: 700; text-align: center; border: 1px solid rgba(162,155,254,0.25); }
 .fi-ctrl-hint { background: #1a1a2e; color: #a0aec0; padding: 0.6rem 1rem; border-radius: 10px; font-size: 0.8rem; font-weight: 700; text-align: center; }
 
 .fi-goal-row { display: flex; justify-content: space-between; background: #f8fafc; padding: 0.62rem 1rem; border-radius: 10px; font-size: 0.88rem; font-weight: 700; color: #2d3436; }
@@ -834,9 +867,13 @@ onUnmounted(() => {
   background: #0d0d1e; border-radius: 12px; padding: 0.5rem 0.8rem;
   border: 1px solid rgba(100,100,200,0.2);
 }
-.hud-bal   { font-size: 1.1rem; font-weight: 800; color: #ffd700; min-width: 80px; transition: color 0.3s; }
-.hud-wave  { flex: 1; font-size: 0.88rem; font-weight: 700; color: #a0c4ff; text-align: center; }
-.hud-score { font-size: 0.9rem; font-weight: 700; color: #c8b8ff; min-width: 60px; text-align: right; }
+.hud-bal   { font-size: 1rem; font-weight: 800; color: #ffd700; min-width: 72px; transition: color 0.3s; }
+.hud-ammo  { font-size: 0.88rem; font-weight: 800; color: #a29bfe; min-width: 54px; }
+.hud-ammo.ammo-low   { color: #e17055; }
+.hud-ammo.ammo-empty { color: #d63031; animation: pulse 0.5s ease-in-out infinite alternate; }
+.hud-lives { font-size: 1rem; letter-spacing: -2px; }
+.hud-wave  { flex: 1; font-size: 0.82rem; font-weight: 700; color: #a0c4ff; text-align: center; }
+.hud-score { font-size: 0.88rem; font-weight: 700; color: #c8b8ff; min-width: 52px; text-align: right; }
 .hud-pu    { font-size: 1.1rem; margin-left: 0.3rem; animation: pulse 0.7s ease-in-out infinite alternate; }
 @keyframes pulse { from{opacity:0.7} to{opacity:1} }
 .hud-pos { color: #00b894 !important; }

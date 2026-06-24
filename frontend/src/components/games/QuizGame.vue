@@ -32,7 +32,7 @@
       <div class="question-meta">
         <span>{{ isEN ? 'Question' : 'Pregunta' }} {{ qIdx + 1 }}/{{ questionCount }}</span>
         <span class="streak-badge" v-if="streak > 0">🔥 {{ streak }}</span>
-        <span class="balance-badge">💰 ${{ currentBalance }}</span>
+        <span class="balance-badge">💰 🪙 {{ currentBalance }}</span>
       </div>
 
       <div class="stake-header">
@@ -54,9 +54,9 @@
           @click="opt.value <= currentBalance && (chosenStake = opt.value)"
         >
           <span class="stake-icon">{{ opt.icon }}</span>
-          <span class="stake-amt">${{ opt.value }}</span>
+          <span class="stake-amt">🪙 {{ opt.value }}</span>
           <span class="stake-mult">×{{ (currentQ.multiplier * (streak >= 3 ? 1.5 : 1)).toFixed(1) }}</span>
-          <span class="stake-win">Win: ${{ Math.round(opt.value * currentQ.multiplier * (streak >= 3 ? 1.5 : 1)) }}</span>
+          <span class="stake-win">Win: 🪙 {{ Math.round(opt.value * currentQ.multiplier * (streak >= 3 ? 1.5 : 1)) }}</span>
         </div>
       </div>
 
@@ -117,8 +117,8 @@
         <div v-if="answered" class="feedback" :class="lastCorrect ? 'fb-correct' : 'fb-wrong'">
           <strong>{{ lastCorrect ? (isEN ? '✅ Correct!' : '✅ ¡Correcto!') : (isEN ? '❌ Wrong!' : '❌ Incorrecto') }}</strong>
           {{ lastCorrect
-            ? (isEN ? `+$${earnedCoins}` : `+$${earnedCoins}`)
-            : (isEN ? `-$${chosenStake}` : `-$${chosenStake}`) }}
+            ? (isEN ? `+🪙 ${earnedCoins}` : `+🪙 ${earnedCoins}`)
+            : (isEN ? `-🪙 ${chosenStake}` : `-🪙 ${chosenStake}`) }}
           <span v-if="!answered && streak >= 3" class="streak-active">🔥 Streak ×1.5</span>
           <p v-if="!isEN && currentQ.explanation" class="explanation">{{ currentQ.explanation }}</p>
           <p v-if=" isEN && currentQ.explanationEN" class="explanation">{{ currentQ.explanationEN }}</p>
@@ -156,7 +156,7 @@
       <div class="net-earnings">
         <p>{{ isEN ? 'Net earnings:' : 'Ganancias netas:' }}</p>
         <span class="net-val" :class="netEarnings >= 0 ? 'green' : 'red'">
-          {{ netEarnings >= 0 ? '+' : '' }}${{ netEarnings }}
+          {{ netEarnings >= 0 ? '+' : '' }}🪙 {{ netEarnings }}
         </span>
       </div>
 

@@ -138,7 +138,7 @@
       </div>
 
       <div class="reward-box">
-        <p>Reward: <strong class="coins">+${{ rewardCoins }}</strong> 🪙</p>
+        <p>Reward: <strong class="coins">+{{ rewardCoins }} 🪙</strong></p>
       </div>
 
       <button class="btn-primary" @click="finish">Finish</button>

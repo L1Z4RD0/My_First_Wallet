@@ -76,7 +76,7 @@
         <h2>{{ modalTitle }}</h2>
         <div class="coins-animation">💰</div>
         <p>{{ modalMessage }}</p>
-        <h3 class="reward-amount" v-if="lastReward > 0">+${{ lastReward }}</h3>
+        <h3 class="reward-amount" v-if="lastReward > 0">+🪙 {{ lastReward }}</h3>
         <button class="btn-primary" @click="closeRewardModal">¡Entendido!</button>
       </div>
     </div>
